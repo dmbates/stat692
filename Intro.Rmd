@@ -2,7 +2,7 @@
 title: "Introduction to R and RStudio"
 author: "Douglas Bates"
 date: "2014-09-05"
-output: ioslides_presentation
+output: pdf_document
 ---
 # Resources
 ## Web sites
@@ -13,3 +13,21 @@ output: ioslides_presentation
 - Install __R__ first then install __RStudio__
 - For later reference the [R Markdown Cheat Sheet](http://shiny.rstudio.com/articles/rm-cheatsheet.html) is helpful
 - __CRAN__ (__C__omprehensive __R__ __A__rchive __N__etwork) packages can be accessed a tab in __RStudio__
+
+## Simple use of R
+
+- The basic R data structure is a _vector_.  You can create vectors from sequences
+```{r ss}
+ss <- 1:10
+```
+or using a repetitive sequence
+```{r ones}
+onetwo <- rep(c(0L,1L),5)
+onestwos <- rep(c(0L,1L),c(5,5))
+```
+or sampling from various distributions
+```{r rnorm}
+nn <- rnorm(10L)
+```
+
+
