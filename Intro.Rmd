@@ -1,0 +1,15 @@
+---
+title: "Introduction to R and RStudio"
+author: "Douglas Bates"
+date: "2014-09-05"
+output: ioslides_presentation
+---
+# Resources
+## Web sites
+- Materials for this course will be available at http://www.stat.wisc.edu/~st692/
+- The materials are archived in the git repository https://github.com/dmbates/stat692/
+- __RStudio__ can be downloaded from http://www.rstudio.com
+- If you do not already have __R__ installed the __RStudio__ download site shows you where to download it
+- Install __R__ first then install __RStudio__
+- For later reference the [R Markdown Cheat Sheet](http://shiny.rstudio.com/articles/rm-cheatsheet.html) is helpful
+- __CRAN__ (__C__omprehensive __R__ __A__rchive __N__etwork) packages can be accessed a tab in __RStudio__
