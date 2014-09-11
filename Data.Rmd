@@ -1,0 +1,70 @@
+---
+title: "Organizing Data in R"
+author: "Douglas Bates"
+date: "2014-09-12"
+output: ioslides_presentation
+---
+
+## Data frames
+- Standard rectangular data sets (columns are variables, rows are observations) are stored in `R` as _data frames_.
+- The columns can be _numeric_ variables (e.g. measurements or counts) or _factor_ variables (categorical data) or _ordered_ factor variables.  These types are called the _class_ of the variable.
+- Many `R` packages contain sample data sets used to illustrate the techniques implemented in the package.
+- There is also a `datasets` package containing datasets used in the example sections of the base `R` documentation.
+    * many of these datasets are old and small, dating from the early days of `R`
+```{r datasets}
+ls("package:datasets")
+```
+
+## The `str` and `summary` functions
+- The `str` function provides a concise description of the structure of a `data.frame` (or any other class of object in `R`).  The `summary` function summarizes each variable according to its class.  Both are highly recommended for routine use.
+```{r strFormaldehyde}
+str(Formaldehyde)
+summary(Formaldehyde)
+```
+
+## `head` and `tail`
+- Entering just the name of the data frame causes it to be printed.  For large data frames use the `head` and `tail` functions to view the first few or last few rows.
+```{r headswiss}
+head(OrchardSprays)
+str(OrchardSprays)
+```
+
+## `ls.str`
+
+- The operations of listing the objects in a package and providing a brief description of their structure are combined in `ls.str`
+```{r lsstr}
+ls.str("package:datasets")
+```
+
+## Data input
+- The simplest way to input a rectangular data set is to save it as a comma-separated value (`csv`) file and read it with `read.csv`.
+- The first argument is the name of the file.  On Windows it can be tricky to get the file path correct.  The `file.choose` function will bring up a chooser panel.
+- `read.csv` just calls `read.table` with a different set of default arguments
+- The first argument to `read.csv`, `read.table`, etc. can be a __connection__ or a __URL__ instead of a file name.
+- Connection types (see `?connection`)
+    * `gzfile` - a file compressed with `gzip`
+    * `bzfile` - a file compressed with `bzip2`
+    * `xzfile` - a file compressed with `xz`
+    * `unz` - a single file from a zip archive
+
+## Reading a compressed file or URL
+```{r sd1,warning=FALSE}
+str(sd1 <- read.csv(gzfile("./sd1.csv.gz","r")))
+```
+```{r classroom}
+str(classroom <- read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"))
+```
+
+## Copying, saving and restoring data objects
+- Assigning a data object to a new name creates a copy.
+- You can save a data object to a file, typically with the extension `.rda`, using the `save` function.
+- To restore the data you `load` the file 
+```{r saveload}
+sprays <- InsectSprays
+save(sprays,file="sprays.rda")
+rm(sprays)
+ls()
+load("sprays.rda")
+names(sprays)
+```
+

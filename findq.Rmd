@@ -1,0 +1,46 @@
+---
+title: "Polynomial roots in (0,1)"
+author: "Douglas Bates"
+date: "09/05/2014"
+output: html_document
+---
+
+# Finding roots in the unit interval
+
+Instead of using the `polyroot` function I would use the `polynom` package, written by Bill Venables and now maintained by Kurt Hornik and Martin Maechler.
+```{r library}
+library(polynom)
+(p <- polynomial(c(0.1, 0.3, 0.4, 0.0,0.2)))
+```
+To scale the coefficients so that they add to 1, you don't compare with 1.  You use
+```{r compare}
+all.equal(sum(as.vector(p)),1)
+```
+
+In general you should use tolerances based on the "relative machine precision", which is available as
+```{r eps}
+.Machine$double.eps
+```
+
+For the general function you have
+```{r findq}
+findq <- function(pvector) {
+    stopifnot(is.vector(pvector,"numeric"),
+              all(pvector >= 0.))
+    if (!isTRUE(all.equal(sum(pvector),1))) {
+        ## do something here
+    }
+    roots <- solve(polynomial(pvector)-polynomial(c(0,1)))
+    realroots <- Re(roots[which(abs(Im(roots)) < 1e3*.Machine$double.eps)])
+    eligible <- realroots[0 <= realroots & realroots < 1]
+    if (length(eligible) <= 1L) return(eligible)
+    eligible[which.min(abs(eligible-0.5))]
+}
+```
+
+Check out the function
+```{r check}
+findq(c(0.1, 0.3, 0.4, 0, 0.2))
+```
+
+
