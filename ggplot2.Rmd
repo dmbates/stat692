@@ -1,0 +1,140 @@
+---
+title: "Data visualization - `ggplot2`"
+author: "Douglas Bates"
+date: "2014-09-19"
+output: ioslides_presentation
+---
+# ggplot2
+
+## The `ggplot2` graphics package
+- `R` has "base" graphics functions as well as specialized plotting packages.
+- The "base" graphics are a very old design.  Avoid them.  It is easy to create bad plots with them and difficult to create good graphics.
+- The `ggplot2` package by Hadley Wickham of RStudio is the recommended visualization package.
+- Hadley's book, [http://ggplot2.org](ggplot2: Elegant Graphics for Data Analysis) (Springer, 2009) describes the system.
+- I will use data from the `faraway` package to accompany Julian Faraway's freely available book __Practical Regression and Anova using R__ to illustrate the use of `qplot`.
+
+
+# The `pima` data set
+
+## Examining the `pima` data
+
+```{r pima}
+library(ggplot2)
+library(faraway)
+str(pima)
+head(pima)
+```   
+
+## Recoding the missing data
+  
+- As Faraway notes, several of the values of variables that cannot reasonably be zero are recorded as zero.
+
+- A bit of research shows that these are missing data values. Also the `test` variable is a factor, not numeric.
+
+```{r pimarecode}
+pima <- within(pima, {
+    diastolic[diastolic == 0] <- glucose[glucose == 0] <-
+    triceps[triceps == 0] <- insulin[insulin == 0] <- bmi[bmi == 0] <- NA
+    test <- factor(test, labels=c("negative","positive"))
+})
+head(pima, 3)
+```
+
+# Univariate summary plots
+
+## Histogram of diastolic blood pressure
+```{r histdiast}
+qplot(diastolic, data=pima, geom="histogram")
+```   
+
+## Histogram of diastolic bp by test
+```{r histby}
+qplot(diastolic, data=pima,geom="histogram",fill=test, xlab="Diastolic blood pressure (mg Hg)")
+```   
+
+## Empirical density plot
+```{r density}
+qplot(diastolic, data=pima, geom="density", xlab="Diastolic blood pressure (mg Hg)")
+```   
+
+## Empirical density of diastolic by test
+```{r densityby}
+qplot(diastolic, data=pima, geom="density", linetype=test, color=test, xlab="Diastolic blood pressure (mg Hg)")
+```   
+
+# Bivariate plots
+
+## Simple scatterplot, c.f. Fig. 1.2a, p. 13
+```{r scat}
+qplot(diastolic,diabetes,data=pima,xlab="Diastolic blood pressure (mg Hg)",ylab="Diabetes pedigree function")
+```   
+
+## Adding a scatterplot smoother
+```{r scat1}
+qplot(diastolic,diabetes,data=pima,geom=c("point","smooth"),xlab="Diastolic blood pressure (mg Hg)",ylab="Diabetes pedigree function")
+```
+
+## Multiple smoothers by group
+```{r scat2}
+qplot(diastolic, diabetes, data=pima, geom=c("point","smooth"), shape=test, linetype=test, xlab="Diastolic blood pressure (mg Hg)", ylab="Diabetes pedigree function")
+```   
+
+## Conversion to log scale
+```{r scat3}
+qplot(diastolic, diabetes, data=pima, geom=c("point","smooth"), shape=test, linetype=test, log="y", xlab="Diastolic blood pressure (mg Hg)", ylab="Diabetes pedigree function")
+```
+
+## Conversion to log-log scale
+```{r scat4}
+qplot(diastolic,diabetes,data=pima,geom=c("point","smooth"),shape=test,linetype=test,log="xy",xlab="Diastolic blood pressure (mg Hg)",ylab="Diabetes pedigree function")
+```
+
+## Comparative boxplots
+```{r bw1}
+qplot(test,diabetes,data=pima,geom="boxplot",xlab="Diabetes test result",ylab="Diabetes pedigree function")
+```   
+
+## Comparative boxplot: horizontal orientation
+```{r bw2,height=3.5}
+qplot(test, diabetes, data=pima, geom="boxplot",xlab="Diabetes test result",ylab="Diabetes pedigree function"
+) + coord_flip()
+```   
+
+## Comparative boxplots: horizontal orientation, log scale
+```{r bw3,fig.height=3.5}
+qplot(test,diabetes,data=pima,geom="boxplot",log="y",xlab="Diabetes test result",ylab="Diabetes pedigree function"
+) + coord_flip()
+```   
+
+
+# Simple regression or ancova lines
+
+## Adding a simple linear regression line - c.f. Fig. 1.3, p. 14
+```{r scatlm}
+stat500 <- data.frame(scale(stat500))
+(p <- qplot(midterm,final,data=stat500,geom=c("point","smooth"),method="lm"))
+```  
+
+## Adding a reference line - c.f. Fig. 1.3, p. 14
+```{r scatlm1}
+print(p + geom_abline(intercept=0,slope=1,color="red"))
+```
+
+## Suppressing the confidence band
+```{r scatlm2}
+qplot(midterm,final,data=stat500,geom=c("point","smooth"),method="lm",se=FALSE) + 
+geom_abline(color="red")
+```  
+
+# Ancova
+
+## Plotting multiple groups and lines, c.f. Fig. 15.2, p. 163
+```{r ancova}
+levels(cathedral$style) <- c("Gothic", "Romanesque")
+qplot(x,y,data=cathedral,geom=c("point","smooth"),shape=style,method="lm",xlab="Nave Height (ft)",ylab="Total Length (ft)")
+```   
+
+## Plotting multiple groups in separate panels}
+```{r ancova1}
+qplot(x,y,data=cathedral,geom=c("point","smooth"),facets=.~style, method="lm",xlab="Nave Height (ft)",ylab="Total Length (ft)")
+```   
