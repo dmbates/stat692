@@ -4,6 +4,7 @@ author: "Douglas Bates"
 date: "2014-09-12"
 output: ioslides_presentation
 ---
+# Data frames, examining structure
 
 ## Data frames
 - Standard rectangular data sets (columns are variables, rows are observations) are stored in `R` as _data frames_.
@@ -35,6 +36,8 @@ str(OrchardSprays)
 ```{r lsstr}
 ls.str("package:datasets")
 ```
+
+# Input and saving data objects
 
 ## Data input
 - The simplest way to input a rectangular data set is to save it as a comma-separated value (`csv`) file and read it with `read.csv`.
@@ -68,3 +71,180 @@ load("sprays.rda")
 names(sprays)
 ```
 
+## Compression when saving
+- By default, when saving to a file with extension `.rda` or `.RData`, the file is compressed with `gzip`.
+- Using `compress="xz"` provides a greater compression ratio at the expense of more compute time
+- For small data sets it is not important.  For large data it can be.
+```{r saveclassroom}
+save(classroom,file="classroom.rda")   # file size is 14.4 KB
+save(classroom,file="classroom1.rda",compress="xz") # 9.1 KB
+```
+
+# Accessing and modifying variables
+
+## Accessing and modifying variables
+  
+- The `$` operator is used to access variables within a data frame.
+```{r dollarop}
+str(Formaldehyde$carb)
+```     
+- You can also use `$` to assign to a variable name
+```{r dollaropleft}
+sprays$sqrtcount <- sqrt(sprays$count)
+names(sprays)
+```     
+
+## Removing variables
+
+- Assigning the special value `NULL` to the name of a
+  variable removes it.
+```{r dollaropleftNULL}
+sprays$sqrtcount <- NULL
+names(sprays)
+```     
+
+
+## Using `with`
+
+- In complex expressions it can become tedious to repeatedly
+  type the name of the data frame.
+- The `with` function allows for direct access to variable
+  names within an expression.  It provides "read-only" access.
+```{r formalfoo}
+Formaldehyde$carb * Formaldehyde$optden
+with(Formaldehyde, carb * optden)
+``` 
+
+## Using `within`
+- The `within` function provides read-write access to a data
+  frame.  It does not change the original frame; it returns a modified
+  copy.  To change the stored object you must assign the result
+  to the name.
+```{r within}
+sprays <- within(sprays, sqrtcount <- sqrt(count))
+str(sprays)
+``` 
+
+# Data Organization
+  
+## Data Organization
+- Careful consideration of the data layout for experimental or
+  observational data is repaid in later ease of analysis.  Sadly, the
+  widespread use of spreadsheets does not encourage such careful
+  consideration.
+- If you are organizing data in a table, use consistent data
+  types within columns.  Databases require this; spreadsheets don't.
+- A common practice in some disciplines is to convert
+  categorical data to 0/1 "indicator variables or to code the levels
+  as numbers with a separate "data key".  This practice is
+  unnecessary and error-inducing in `R`.  When you see categorical
+  variables coded as numeric variables, change them to `factor`s or
+  `ordered` factors.
+- Spreadsheets also encourage the use of a "wide" data format,
+  especially for longitudinal data.  Each row corresponds to an
+  experimental unit and multiple observation occasions are
+  represented in different columns.  The "long" format is
+  preferred in `R`.
+  
+
+
+
+## Converting numeric variables to factors
+  
+- The `factor` (`ordered`) function creates a factor
+  (ordered factor) from a vector.  Factor labels can be specified in
+  the optional `labels` argument.
+- Suppose the `spray` variable in the `InsectSprays`
+  data was stored as numeric values $1, 2,\dots,6$.  We convert it
+  back to a factor with `factor`.
+  
+```{r sprays}
+str(sprays <- within(InsectSprays, spray <- as.integer(spray)))
+str(sprays <- within(sprays, spray <- factor(spray, labels = LETTERS[1:6])))
+``` 
+
+
+# Subsets of data frames
+
+
+## Subsets of data frames
+  
+- The `subset` function is used to extract a subset of the
+  rows or of the columns or of both from a data frame.
+- The first argument is the name of the data frame. The
+  second is an expression indicating which rows are to be selected.
+- This expression often uses logical operators such as
+  `==`, the equality comparison, or `!=`, the inequality
+  comparison, `>=`, meaning "greater than or equal to", etc.
+```{r sprayA}
+str(sprayA <- subset(sprays, spray == "A"))
+```   
+\item The optional argument `select` can be used to specify the
+  variables to be included.
+
+## Subsets and factors
+  
+- The way that factors are defined, a subset of a factor retains
+  the original set of levels.  Usually this is harmless but
+  sometimes it can cause unexpected results.
+- You can "drop unused levels" by applying `factor` to
+  the factor.  Many functions, such as `xtabs`, which is used to
+  create cross-tabulations, have optional arguments with names like
+  `drop.unused.levels` to automate this.
+  
+```{r xtabssprays}
+xtabs( ~ spray, sprayA)
+xtabs( ~ spray, sprayA, drop = TRUE)
+``` 
+
+
+## Dropping unused levels in the spray factor
+```{r spraysdrop}
+str(sprayA <- within(sprayA, spray <- factor(spray)))
+xtabs( ~ spray, sprayA)
+```   
+
+## The `%in%` operator
+\item Another useful comparison operator is `%in%` for
+  selecting a subset of the values in a variable.
+
+```{r sprayDEF}
+str(sprayDEF <- subset(sprays, spray %in% c("D","E","F")))
+``` 
+
+## "Long" and "wide" forms of data
+  
+- Spreadsheet users tend to store balanced data, such as `InsectSprays`, across many columns.  This is called the "wide" format.  The `unstack` function converts a simple "long" data set to wide; `stack` for the other way.
+```{r unstack}
+str(unstack(InsectSprays))
+```     
+- The problem with the wide format is that it only works for balanced data.  A designed experiment may produce balanced data (although "Murphy's Law" would indicate otherwise) but observational data are rarely balanced. Use the long format when possible.
+
+## Using reshape
+  
+- The `reshape` function allows for more general translations of long to wide and vice-versa.  It is specifically intended for longitudinal data.
+- There is also a package called `"reshape"` with even more general (but potentially confusing) capabilities.
+- Phil Spector's book, __Data Manipulation with R__ (Springer, 2008) covers this topic in more detail.
+```{r classroomfactor,echo=FALSE,results='hide'}
+classroom <- within(classroom,schoolid <- factor(schoolid))
+```
+
+
+
+## Determining unique rows in a data frame
+  
+- One disadvantage of keeping data in the long format is
+  redundancy and the possibility of inconsistency.
+- In the first set of exercises you are asked to create a data
+  frame `classroom` from a csv file available on the Internet.
+  Each of the `r nrow(classroom)` rows corresponds to a student
+  in a classroom in a school.  There is one numeric "school level"
+  covariate, `housepov`.
+- To check if `housepov` is stored consistently we select
+  the unique combinations of only those two columns
+  
+```{r clasuniq}
+str(unique(subset(classroom, select = c(schoolid,housepov))))
+``` 
+Because there are 107 unique combinations and 107 schools,
+`housepov` is consistent with `schoolid`.

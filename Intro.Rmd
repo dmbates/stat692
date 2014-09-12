@@ -1,8 +1,8 @@
 ---
 title: "Introduction to R and RStudio"
 author: "Douglas Bates"
-date: "2014-09-05"
-output: pdf_document
+date: '2014-09-05'
+output: ioslides_presentation
 ---
 # Resources
 ## Web sites
@@ -18,16 +18,21 @@ output: pdf_document
 
 - The basic R data structure is a _vector_.  You can create vectors from sequences
 ```{r ss}
-ss <- 1:10
+str(ss <- 1:10)
 ```
 or using a repetitive sequence
 ```{r ones}
-onetwo <- rep(c(0L,1L),5)
-onestwos <- rep(c(0L,1L),c(5,5))
+str(onetwo <- rep(c(0L,1L),5))
+str(onestwos <- rep(c(0L,1L),c(5,5)))
 ```
-or sampling from various distributions
+
+## More constructors
+- You can sample from various distributions
+- The sampling functions have names that begin with the letter `r`
+- Common distributions includes Normal (`norm`), Exponential (`exp`), Binomial (`binom`), Poisson (`pois`)
 ```{r rnorm}
-nn <- rnorm(10L)
+str(nn <- rnorm(10))
+str(nn12 <- rnorm(10,mean=1,sd=2))
 ```
 
 
