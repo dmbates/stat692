@@ -4,6 +4,13 @@ author: "Douglas Bates"
 date: "2014-09-19"
 output: ioslides_presentation
 ---
+```{r preliminaries,cache=FALSE,echo=FALSE,results='hide'}
+library(ggplot2)
+library(knitr)
+library(faraway)
+opts_chunk$set(cache=TRUE,fig.align='center',fig.width=9,fig.height=4.5,warning=FALSE,message=FALSE)
+```
+
 # ggplot2
 
 ## The `ggplot2` graphics package
@@ -13,14 +20,18 @@ output: ioslides_presentation
 - Hadley's book, [http://ggplot2.org](ggplot2: Elegant Graphics for Data Analysis) (Springer, 2009) describes the system.
 - I will use data from the `faraway` package to accompany Julian Faraway's freely available book __Practical Regression and Anova using R__ to illustrate the use of `qplot`.
 
+## General principles
+
+- `ggplot2` is an implementation of Leland Wilkinson's "Grammar of Graphics" ideas
+- The general approach is to build information about a plot in layers associating geometric or statistical aspects of the plot with various data characteristics.
+- Frequently we create the base information about the plot then add information about the geometry then display the result.
+- The `qplot` function produces a "quick plot".  It can be used to create a base plot but I prefer to use `ggplot`.
 
 # The `pima` data set
 
 ## Examining the `pima` data
 
 ```{r pima}
-library(ggplot2)
-library(faraway)
 str(pima)
 head(pima)
 ```   
@@ -43,98 +54,119 @@ head(pima, 3)
 # Univariate summary plots
 
 ## Histogram of diastolic blood pressure
-```{r histdiast}
+```{r histdiastolic}
 qplot(diastolic, data=pima, geom="histogram")
-```   
+```
 
-## Histogram of diastolic bp by test
+## Comments about the histogram
+
+- Histograms are from an earlier era.  You almost never want to use them.
+- If you want to show the empirical density of a set of observations use an empirical density plot.
+- One of the simplest things you can do to enhance a plot is to use informative axis labels, including the units if appropriate. In the case of diastolic blood pressure, "75 mmHg" is a measurement; "75" is not.
+- To avoid repeating phrases like `xlab="Diastolic blood pressue (mmHg)"` create the base plot then display it with various geometries.
+
+## Histogram of diastolic blood pressure
 ```{r histby}
-qplot(diastolic, data=pima,geom="histogram",fill=test, xlab="Diastolic blood pressure (mg Hg)")
+p <- ggplot(pima, aes(x=diastolic)) + xlab("Diastolic blood pressure (mmHg)")
+p + geom_histogram()
 ```   
 
-## Empirical density plot
+## Empirical density plot of diastolic blood pressure
 ```{r density}
-qplot(diastolic, data=pima, geom="density", xlab="Diastolic blood pressure (mg Hg)")
+p + geom_density(aes(x=diastolic))
 ```   
 
-## Empirical density of diastolic by test
+## Empirical density of diastolic b.p. by test result
 ```{r densityby}
-qplot(diastolic, data=pima, geom="density", linetype=test, color=test, xlab="Diastolic blood pressure (mg Hg)")
+p + geom_density(aes(color=test))
 ```   
 
 # Bivariate plots
 
 ## Simple scatterplot, c.f. Fig. 1.2a, p. 13
 ```{r scat}
-qplot(diastolic,diabetes,data=pima,xlab="Diastolic blood pressure (mg Hg)",ylab="Diabetes pedigree function")
+p <- ggplot(pima,aes(x=diastolic,y=diabetes))+xlab("Diastolic blood pressure (mmHg)")+ylab("Diabetes pedigree function")
+p + geom_point()
 ```   
 
 ## Adding a scatterplot smoother
 ```{r scat1}
-qplot(diastolic,diabetes,data=pima,geom=c("point","smooth"),xlab="Diastolic blood pressure (mg Hg)",ylab="Diabetes pedigree function")
+p + geom_point() + geom_smooth()
 ```
 
 ## Multiple smoothers by group
 ```{r scat2}
-qplot(diastolic, diabetes, data=pima, geom=c("point","smooth"), shape=test, linetype=test, xlab="Diastolic blood pressure (mg Hg)", ylab="Diabetes pedigree function")
+p + geom_point(aes(color=test)) + geom_smooth(aes(color=test))
 ```   
 
 ## Conversion to log scale
 ```{r scat3}
-qplot(diastolic, diabetes, data=pima, geom=c("point","smooth"), shape=test, linetype=test, log="y", xlab="Diastolic blood pressure (mg Hg)", ylab="Diabetes pedigree function")
+p + geom_point(aes(color=test)) + geom_smooth(aes(color=test)) + scale_x_log10()
 ```
 
 ## Conversion to log-log scale
 ```{r scat4}
-qplot(diastolic,diabetes,data=pima,geom=c("point","smooth"),shape=test,linetype=test,log="xy",xlab="Diastolic blood pressure (mg Hg)",ylab="Diabetes pedigree function")
+p <- p + geom_point(aes(color=test)) + geom_smooth(aes(color=test))
+p + scale_x_log10() + scale_y_log10()
 ```
 
-## Comparative boxplots
+# Comparative boxplots
+
+## Comparing a continuous response by groups
+- One of the things that drive me crazy when I am looking at a paper or report is non-informative comparative boxplots.
+- Almost always the response is shown on the vertical axis and the groups on the horizontal axis.
+- By transposing these axes the plot can be made much more informative.
+- In a report or paper, the "expense" of including a plot is usually determined by the height, not the width.
+- Short wide plots are preferred to tall narrow plots.
+- It makes much better sense to put the continuous response on the long axis and the categorical groups on the short axis.
+- In `ggplot2` you create the plot in the usual orientation then use `coord_flip()` to transpose the axes.
+
+## Comparative boxplots - the wrong way
 ```{r bw1}
-qplot(test,diabetes,data=pima,geom="boxplot",xlab="Diabetes test result",ylab="Diabetes pedigree function")
+p <- ggplot(pima, aes(x=test,y=diabetes)) + xlab("Diabetes test result") + ylab("Diabetes pedigree function")
+p + geom_boxplot()
 ```   
 
 ## Comparative boxplot: horizontal orientation
-```{r bw2,height=3.5}
-qplot(test, diabetes, data=pima, geom="boxplot",xlab="Diabetes test result",ylab="Diabetes pedigree function"
-) + coord_flip()
-```   
+```{r bw2,fig.height=1.5}
+p + geom_boxplot() + coord_flip()
+```
+- You can make such a figure very short and not lose information
 
 ## Comparative boxplots: horizontal orientation, log scale
-```{r bw3,fig.height=3.5}
-qplot(test,diabetes,data=pima,geom="boxplot",log="y",xlab="Diabetes test result",ylab="Diabetes pedigree function"
-) + coord_flip()
+```{r bw3,fig.height=1.5}
+p + geom_boxplot() + scale_y_log10() + coord_flip()
 ```   
-
 
 # Simple regression or ancova lines
 
-## Adding a simple linear regression line - c.f. Fig. 1.3, p. 14
-```{r scatlm}
+## Adding a simple linear regression line - c.f. Fig. 1.3
+```{r scatlm,fig.height=4}
 stat500 <- data.frame(scale(stat500))
-(p <- qplot(midterm,final,data=stat500,geom=c("point","smooth"),method="lm"))
+p <- ggplot(stat500,aes(x=midterm,y=final))+geom_point()+xlab("Z-score on midterm exam")+ylab("Z-score on final exam")
+p + geom_smooth(method="lm") + coord_equal()
 ```  
 
-## Adding a reference line - c.f. Fig. 1.3, p. 14
+## Adding a reference line - c.f. Fig. 1.3
 ```{r scatlm1}
-print(p + geom_abline(intercept=0,slope=1,color="red"))
+p+geom_smooth(method="lm")+geom_abline(intercept=0,slope=1,color="red")+coord_equal()
 ```
 
 ## Suppressing the confidence band
-```{r scatlm2}
-qplot(midterm,final,data=stat500,geom=c("point","smooth"),method="lm",se=FALSE) + 
-geom_abline(color="red")
+```{r scatlm2,fig.width=4.5}
+p+geom_smooth(method="lm",se=FALSE)+geom_abline(color="red")+coord_equal()
 ```  
 
 # Ancova
 
-## Plotting multiple groups and lines, c.f. Fig. 15.2, p. 163
+## Plotting multiple groups and lines, c.f. Fig. 15.2
 ```{r ancova}
 levels(cathedral$style) <- c("Gothic", "Romanesque")
-qplot(x,y,data=cathedral,geom=c("point","smooth"),shape=style,method="lm",xlab="Nave Height (ft)",ylab="Total Length (ft)")
+p <- ggplot(cathedral,aes(x=x,y=y)) + xlab("Nave Height (ft)") + ylab("Total Length (ft)")
+p + geom_point(aes(color=style)) + geom_smooth(aes(color=style),method="lm")
 ```   
 
-## Plotting multiple groups in separate panels}
+## Plotting multiple groups in separate panels
 ```{r ancova1}
-qplot(x,y,data=cathedral,geom=c("point","smooth"),facets=.~style, method="lm",xlab="Nave Height (ft)",ylab="Total Length (ft)")
+p + geom_point() + geom_smooth(method="lm") + facet_grid(.~style)
 ```   
