@@ -1,3 +1,11 @@
 .Rproj.user
 .Rhistory
 .RData
+*.png
+*.html
+*.rdb
+*.rdx
+*.RData
+/classroom.rda
+/Ex1.Rmd
+*_cache
