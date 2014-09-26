@@ -1,0 +1,37 @@
+---
+title: 'Statistics 692, exercises #2'
+author: "Douglas Bates"
+date: "2014-10-07"
+output: html_document
+---
+```{r initial,echo=FALSE,print=FALSE,cache=FALSE}
+library(knitr)
+opts_chunk$set(cache=TRUE)
+options(width=76, show.signif.stars = FALSE, str = strOptions(strict.width = "cut"))
+set.seed(123454321)
+``` 
+Your answers should be submitted as an _R Markdown_ (`Rmd`) document providing both the code you use and a brief description of each step.  The description should be written as if intended for the "client".
+
+Submit only the `.Rmd` file.  The file will be run through `knitr::knit` to verify that it produces the desired results.  Use `pdf_document` as the output format.  Align figures to the center of the line.  Allow them to float to the top or the bottom of the page.  Provide figure captions.
+
+Load the `classroom` data frame that you saved in the previous set of exercises and attach the `ggplot2` package.
+
+1. Provide a histogram of the `mathkind` (mathematics score in kindergarten) variable.  For this and all other plots in this assignment provide informative axis labels where appropriate.
+
+2. Provide an empirical density plot of `mathkind`
+
+3. Provide an empirical density plot of `mathkind` by `sex`.  Do this in two ways: One panel with two lines and two panels.
+
+4. Provide an empirical density plot of `mathkind` by `minority`.
+
+5. Provide a scatter-plot of `mathgain` versus the kindergarten score.  Include a scatterplot smoother curve with the band of pointwise confidence intervals.
+    a. The negative correlation between `mathgain` and `mathkind` is not surprising.  Explain.
+    b. Does it make sense to include `mathkind` as a covariate in a model for `mathgain`?  Explain.
+
+6. Repeat this plot with a simple linear regression line instead of a scatterplot smoother.
+    a. Include the estimated coefficients of the regression line in the caption for the plot
+
+7. Create a new variable called `mathone` which is the sum of `mathkind` and `mathgain`.  Repeat the plot with the scatterplot smoother for `mathone` versus `mathkind`.  Because both variables are measured on the same scale use a unit aspect ratio for the plot.
+
+8. Create a dotplot of the mathgain by classroom for students in school 11 only.
+
