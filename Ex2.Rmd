@@ -2,7 +2,10 @@
 title: 'Statistics 692, exercises #2'
 author: "Douglas Bates"
 date: "2014-10-07"
-output: pdf_document
+output: 
+    pdf_document:
+        keep_tex: true
+        fig_caption: true
 ---
 ```{r initial,echo=FALSE,print=FALSE,cache=FALSE}
 library(knitr)
@@ -14,21 +17,20 @@ set.seed(123454321)
 ``` 
 Your answers should be submitted as an _R Markdown_ (`Rmd`) document providing both the code you use and a brief description of each step.  The description should be written as if intended for the "client".
 
-Submit only the `.Rmd` file.  The file will be run through `knitr::knit` to verify that it produces the desired results.  Use `pdf_document` as the output format.  Align figures to the center of the line.  Allow them to float to the top or the bottom of the page.  Provide figure captions.
+Submit only the `.Rmd` file.  The file will be run through `knitr::knit` to verify that it produces the desired results.  Use `pdf_document` as the output format.  Allow them to float to the top or the bottom of the page.  Provide figure captions.
 
 Load the `classroom` data frame that you saved in the previous set of exercises and attach the `ggplot2` package.
 
-1. Provide a histogram of the `mathkind` (mathematics score in kindergarten) variable.  For this and all other plots in this assignment provide informative axis labels where appropriate.
+1. Provide a histogram of the `mathkind` (mathematics score in kindergarten) variable.  For this and all other plots in this assignment provide informative axis labels where appropriate.  An example of this plot is shown in Figure (#fig:hist1)
 
-```{r hist1,echo=FALSE}
+```{r hist1,echo=FALSE,fig.cap="Histogram of the kindergarten mathematics score",fig.height=3,fig.width=6.5,fig.pos="tb"}
 p <- ggplot(classroom,aes(x=mathkind)) + xlab("Kindergarten Mathematics Score")
 p + geom_histogram()
 ```
 
+2. Provide an empirical density plot of `mathkind`, as shown in Figure (#fig:dens1)
 
-2. Provide an empirical density plot of `mathkind`
-
-```{r dens1,echo=FALSE,fig.align='center',fig.cap="Histogram of the kindergarten mathematics score",fig.height=2.5,fig.width=6.5,out.width="0.8\\textwidth",fig.pos="h",warning=FALSE}
+```{r dens1,echo=FALSE,fig.cap="Empirical density plot of the kindergarten mathematics score",fig.height=2.5,fig.width=6.5,fig.pos="tb"}
 p + geom_density()
 ```
 
