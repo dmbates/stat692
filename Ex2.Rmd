@@ -7,7 +7,7 @@ output: pdf_document
 ```{r initial,echo=FALSE,print=FALSE,cache=FALSE}
 library(knitr)
 library(ggplot2)
-load("classroom.rda")
+classroom <- read.csv("http://www-personal.umich.edu/~bwest/classroom.csv")
 opts_chunk$set(cache=TRUE)
 options(width=76, show.signif.stars = FALSE, str = strOptions(strict.width = "cut"))
 set.seed(123454321)
@@ -20,10 +20,15 @@ Load the `classroom` data frame that you saved in the previous set of exercises 
 
 1. Provide a histogram of the `mathkind` (mathematics score in kindergarten) variable.  For this and all other plots in this assignment provide informative axis labels where appropriate.
 
+```{r hist1,echo=FALSE}
+p <- ggplot(classroom,aes(x=mathkind)) + xlab("Kindergarten Mathematics Score")
+p + geom_histogram()
+```
+
+
 2. Provide an empirical density plot of `mathkind`
 
-```{r dens1,echo=FALSE,fig.align='center',fig.cap="Histogram of the kindergarten mathematics score",fig.height=2.5,fig.width=6.5,out.width="0.8\\textwidth",fig.pos="h",warning=FALSE,include=TRUE}
-p <- ggplot(classroom,aes(x=mathkind)) + xlab("Kindergarten Mathematics Score")
+```{r dens1,echo=FALSE,fig.align='center',fig.cap="Histogram of the kindergarten mathematics score",fig.height=2.5,fig.width=6.5,out.width="0.8\\textwidth",fig.pos="h",warning=FALSE}
 p + geom_density()
 ```
 
