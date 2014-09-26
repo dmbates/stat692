@@ -2,10 +2,12 @@
 title: 'Statistics 692, exercises #2'
 author: "Douglas Bates"
 date: "2014-10-07"
-output: html_document
+output: pdf_document
 ---
 ```{r initial,echo=FALSE,print=FALSE,cache=FALSE}
 library(knitr)
+library(ggplot2)
+load("classroom.rda")
 opts_chunk$set(cache=TRUE)
 options(width=76, show.signif.stars = FALSE, str = strOptions(strict.width = "cut"))
 set.seed(123454321)
@@ -17,6 +19,10 @@ Submit only the `.Rmd` file.  The file will be run through `knitr::knit` to veri
 Load the `classroom` data frame that you saved in the previous set of exercises and attach the `ggplot2` package.
 
 1. Provide a histogram of the `mathkind` (mathematics score in kindergarten) variable.  For this and all other plots in this assignment provide informative axis labels where appropriate.
+```{r hist1,echo=FALSE,fig.align='center',fig.cap="Histogram of the kindergarten mathematics score",fig.height=2.5,fig.width=6.5,fig.lp='fig:hist1'}
+qplot(mathkind,data=classroom,geom="histogram")
+```
+
 
 2. Provide an empirical density plot of `mathkind`
 
