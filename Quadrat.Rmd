@@ -1,0 +1,38 @@
+---
+title: "DB_QuadratSummary"
+author: "Douglas Bates"
+date: "09/26/2014"
+output:
+  pdf_document:
+    fig_caption: yes
+---
+
+# Reading the data
+
+An initial examination of the data file
+```{r input}
+str(summ <- read.delim("/afs/cs.wisc.edu/p/stat/Data/MS.exam/s11/DB_QuadratSummary_MSTest.txt"))
+```
+shows that `Plot`, `Transect` and `Quadrat` should probably be converted to factors and that the last four variables are likely indicators.
+```{r}
+for (i in 8:11) {print(unique(summ[[i]]))}
+```
+
+At this point I would go back and regenerate the dataset
+```{r input2}
+str(summ <- within(read.delim("/afs/cs.wisc.edu/p/stat/Data/MS.exam/s11/DB_QuadratSummary_MSTest.txt"), {
+    Plot <- factor(Plot)
+    Transect <- factor(Transect)
+    Quadrat <- factor(Quadrat)
+    X2m_SppPresent <- factor(X2m_SppPresent,labels=c("N","Y"))
+    X2m_SppBrowsed <- factor(X2m_SppBrowsed,labels=c("N","Y"))
+    X4m_SppPresent <- factor(X4m_SppPresent,labels=c("N","Y"))
+    X4m_SppBrowsed <- factor(X4m_SppBrowsed,labels=c("N","Y"))
+}))
+```
+then examine a summary
+```{r summary}
+summary(summ)
+```
+
+
