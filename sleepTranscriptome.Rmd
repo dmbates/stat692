@@ -1,0 +1,22 @@
+---
+title: "Sleep Transcriptome Data"
+author: "Douglas Bates"
+date: "10/09/2014"
+output: pdf_document
+---
+
+The data are available in the file `/afs/cs.wisc.edu/p/stat/Data/MS.exam/f11/sleepTranscriptome.txt`.  The file is described as having 36 columns and 45101 rows.  It was created on a Mac which may cause problems with the line endings.
+
+```{r read}
+ff <- read.delim('/afs/cs.wisc.edu/p/stat/Data/MS.exam/f11/sleepTranscriptome.txt')
+```
+
+```{r }
+library(ggplot2)
+p <- ggplot(ff,aes(x=X1BS_08172011_.Mouse430_2..CEL))
+p + geom_density()
+```
+
+The fact that the density plot shows a hard edge on the left hand side could mean that the range would be interesting to examine.
+
+

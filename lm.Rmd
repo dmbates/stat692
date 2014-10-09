@@ -1,0 +1,132 @@
+---
+title: "Linear Models and Matrix Decompositions"
+author: "Douglas Bates"
+date: "10/09/2014"
+output: 
+    ioslides_presentation:
+        wide: true
+        small: true
+---
+
+# Simple linear regression
+
+## The brain-weight data
+
+A famous data set from a 1976 _Science_ paper provides average body weight (kg) and brain weight (g) for 62 species of mammals.
+```{r brains}
+data("brains",package="alr4")
+str(brains)
+head(brains)
+```
+
+## Initial plots
+```{r p1,fig.align='center'}
+library(ggplot2)
+p <- ggplot(brains,aes(x=BodyWt,y=BrainWt)) + xlab("Average body weight (kg)") + ylab("Average brain weight (g)")
+(p <- p + geom_point())
+```
+
+## On a log-log scale
+```{r log-log,fig.align='center'}
+(p <- p + scale_x_log10() + scale_y_log10())
+```
+
+## With a smoother line
+```{r smoother,fig.align='center',echo=FALSE,warning=FALSE}
+p + geom_smooth()
+```
+
+## With a regression line
+```{r regr,fig.align='center',echo=FALSE}
+p + geom_smooth(method="lm")
+```
+
+# Fitting a simple linear regression
+
+## Calling `lm`
+
+- As with other model-fitting functions in `R`, the first argument to `lm` is a formula.
+- The second argument is `data` which is a data frame in which to evaluate the expressions in the formula
+    + this argument is optional but recommended,
+    + it may seem handy to omit it and use variables from the GlobalNameSpace but you lose the audit trail when you do this
+    
+```{r fm1}
+fm1 <- lm(log(BrainWt) ~ 1 + log(BodyWt), brains)
+summary(fm1)
+```
+
+## The model matrix
+
+- the terminology used in `R` is that the formula and the data together generate a _model matrix_
+- sometimes the term _design matrix_ is instead.  "model matrix" is more accurate
+```{r mm}
+head(mm1 <- model.matrix(fm1))
+str(mm1)
+```
+
+## The Intercept term
+
+- Many "statistical packages" assume that an intercept will be included in a model and provide syntax for suppressing it.
+- I prefer to indicate the intercept explicitly by writing the formula as `1 + BodyWt`
+- To suppress the intercept you must write the formula as `0 + BodyWt`
+- The intercept term generates the initial column of 1's in the model matrix
+```{r ones}
+all(mm1[,1] == 1)
+```
+
+## Suppressing "significance stars"
+- One of the worst decisions in `R` development was adding "significance stars" to the `summary` output for many models.
+- They are optional.  Unfortunately, the default is to have them.
+```{r}
+options(show.signif.stars=FALSE)
+summary(fm1)
+```
+
+## `Summary` versus `print`
+
+- Another perplexing decision in the development of `S` and `R` is to have the `print` method provide almost no useful information and use `summary` instead.
+- Sometimes you just want the coefficient table from the summary, which is available as
+```{r}
+(ctbl <- coef(summary(fm1)))
+```
+- There is a special method for printing tables with p-values in them.  It is used in `print.summary.lm` but not in the more terse form used above.
+- Because the special printing method shows `< 2e-16` for small p-values, some people believe that probabilities lower than that are not evaluated.  This is not the case.
+
+## Plots of an `lm` object
+
+- There are several "pre-packaged" plots for `lm` objects.  A total of 6 are available.
+```{r plot1,fig.align='center'}
+plot(fm1,which=1)
+```
+
+## plot 2
+```{r plot2,fig.align='center',echo=FALSE}
+plot(fm1,which=2)
+```
+
+## plot 3
+```{r plot3,fig.align='center',echo=FALSE}
+plot(fm1,which=3)
+```
+
+## plot 4
+```{r plot4,fig.align='center',echo=FALSE}
+plot(fm1,which=4)
+```
+
+## plot 5
+```{r plot5,fig.align='center',echo=FALSE}
+plot(fm1,which=5)
+```
+
+## plot 6
+```{r plot6,fig.align='center',echo=FALSE}
+plot(fm1,which=6)
+```
+
+## Components of an `lm` object
+
+```{r nameslm}
+names(fm1)
+```
+- many of the component names (`call`,`residuals`,`fitted.values`,`coefficients`, `df.residual`) are self-explanatory.  Others aren't.

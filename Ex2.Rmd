@@ -1,7 +1,7 @@
 ---
 title: 'Statistics 692, exercises #2'
 author: "Douglas Bates"
-date: "2014-10-07"
+date: "2014-10-14"
 output: 
     pdf_document:
         keep_tex: true
