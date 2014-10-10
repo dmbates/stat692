@@ -146,4 +146,15 @@ The `methods` function provides a list of methods for a given generic or for a g
 methods(class=class(fm1))
 ```
 
+## Using extractor functions
+- Many of the methods for `lm` objects are "extractor" functions.  That it, they extract some information from the fitted model in a way that does not depend on the internal structure.
+- Try to use such functions whenever possible so as to "future proof" your code.
+- When writing code for your own model fitting, provide extractors when possible
+```{r coeff}
+coef(fm1)
+deviance(fm1)
+logLik(fm1)
+```
+
+
 
