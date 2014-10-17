@@ -1,0 +1,104 @@
+---
+title: "Key for Assignment 2"
+author: "Douglas Bates"
+date: "10/14/2014"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 3
+---
+```{r preliminaries,echo=FALSE,cache=FALSE}
+library(knitr)
+library(ggplot2)
+attach("./classroom.rda")
+options(show.signif.stars=FALSE)
+p1 <- ggplot(classroom,aes(x=mathkind))+xlab("Kindergarten mathematics score")
+p2 <- ggplot(classroom,aes(x=mathkind,y=mathgain)) + xlab("Kindergarten mathematics score") +
+    ylab("Gain in mathematics score") + geom_point()
+cc <- round(coef(lm(mathgain ~ mathkind,classroom)),3)
+```
+## Univariate presentations of the kindergarten mathematics scores
+
+A histogram of the kindergarten mathematics score (Fig. 1) shows that the scores are reasonably close to a normal distribution.  There is a small cluster of points below 300.
+
+```{r hist1,fig.cap="Histogram of the kindergarten mathematics score",echo=FALSE,message=FALSE}
+p1 + geom_histogram()
+```
+
+These observations are confirmed in an empirical density plot of these scores (Fig. 2)
+
+```{r dens1,fig.cap="Empirical density plot of the kindergarten mathematics scores",echo=FALSE}
+p1 + geom_density()
+```
+
+A comparative density plot by sex (Fig. 3) shows that the shape of the distributions for boys and for girls are similar, with the boys' scores being slightly more diffuse.
+
+```{r dens2,fig.cap="Empirical density plot of the kindergarten mathematics scores with separate curves for boys and for girls",echo=FALSE}
+p1 + geom_density(aes(color=sex))
+```
+
+An alternative approach using separate panels for boys and for girls in the empirical density plot (Fig. 4) confirms the similar shapes of the distributions.  It is not easy to compare locations on these panels.
+
+```{r dens3,fig.cap="Empirical density plot of the kindergarten mathematics scores with separate panels for boys and for girls",echo=FALSE}
+p1 + geom_density() + facet_grid(~ sex)
+```
+
+An empirical density plot with separate curves for minority and non-minority students (Fig. 5) shows similar shapes with the non-minority students' scores shifted to the right.  We note that the "bump" below 300 is composed of minority students only.
+
+```{r dens4,fig.cap="Empirical density plot of the kindergarten mathematics scores with separate curves for minority students and for non-minority students",echo=FALSE}
+p1 + geom_density(aes(color=minority))
+```
+
+## Bivariate presentations of the mathematics score gain by kindergarten score
+
+A scatter-plot of the gain in mathematics score versus the kindergarten mathematics score (Fig. 6) shows a pattern of decreasing gains with increasing kindergarten score.
+
+```{r scatter1,fig.cap="Mathematics score gain versus kindergarten mathematics score.  A scatterplot-smoother (loess) line is superimposed.",echo=FALSE,message=FALSE,fig.height=4.5}
+p2 + geom_smooth()
+```
+
+The negative correlation between the gain and the kindergarten score, emphasized by the scatter plot smoother line in Fig. 6, is not unexpected.  The gain is the score at first grade __minus__ the kindergarten score.
+
+There is an unusual pattern of seven outlying observations, all with the same kindergarten score, on the left-hand side and two outliers with the same kindergarten score on the right hand side.  It is likely that these points correspond to the lowest attainable score and the highest attainable score.
+
+We reproduce this scatter-plot with a simple least squares fitted line in Fig. 7.
+
+```{r scatter2,fig.cap=paste("Mathematics score gain versus kindergarten mathematics score.  A simple least squares fitted line with slope", cc[2], "and intercept", cc[1],"is superimposed."),echo=FALSE,message=FALSE,fig.height=4.5}
+p2 + geom_smooth(method="lm")
+```
+
+The negative slope of the line, `r cc[2]`, is in keeping with the earlier observation of a negative correlation caused by the kindergarten score being incorporated on both axes.  The intercept, `r cc[1]`, is not particularly meaningful because it corresponds to a kindergarten score of 0, which is well outside the observed range.
+
+Using `mathkind` as a predictor of `mathgain`, which is the mathematics score in grade 1 minus `mathkind`, results in `mathkind` being both part of the response and a predictor.  This practice is not recommended.
+
+## Creation of a `mathone` score
+
+We recreate the first grade score as
+```{r mathone}
+classroom <- within(classroom, mathone <- mathkind + mathgain)
+```
+to produce a scatterplot of the first grade score versus the kindergarten score (Fig. 8).  Interestingly, the students with outlying scores in kindergarten, below 300 or above 600, all got mid-level scores in first grade.  This causes the scatterplot smoother (loess) line to be flattened at the ends.  It does take on a positive slope in the middle of the data cluster, as we would expect.
+
+```{r scatter3,fig.cap="Mathematics score in grade 1 versus kindergarten mathematics score.  A scatterplot-smoother (loess) line is superimposed.",echo=FALSE,message=FALSE,fig.height=4.5}
+p <- ggplot(classroom,aes(x=mathkind,y=mathone))+xlab("Kindergarten mathematics score")+ylab("Mathematics score in first grade")
+p + geom_point() + geom_smooth() + coord_equal()
+```
+
+## Patterns within classrooms
+
+To eliminate school-level effects and concentrate instead on classrooms, in Fig. 9 we show a dotplot of the scores by class for the classes from school 11.
+
+```{r classdotplot,fig.cap="Mathematics score gain by classroom for classes sampled in school 11.",echo=FALSE,message=FALSE,fig.height=2.5}
+p <- ggplot(subset(classroom,schoolid==11), aes(x=classid,y=mathgain))+ylab("Gain in mathematics score")+xlab("Classroom")
+p + geom_point() + coord_flip()
+```
+
+Because there are so few scores per classroom, outliers such as the very low score in class 172 and the very high score in class 285, have considerable influence on any evaluation of "average math gain" by class.  It can sometimes be helpful to reorder the levels of `classid` by increasing mean `mathgain` so that patterns across classes become clearer.  We do so in Fig. 10.
+
+```{r classdotplot1,fig.cap="Mathematics score gain by classroom for classes sampled in school 11. The classes have been ordered by increasing average gain.",echo=FALSE,message=FALSE,fig.height=2.5}
+school11 <- within(droplevels(subset(classroom,schoolid==11)), classid <- reorder(classid,mathgain))
+p <- ggplot(school11, aes(x=classid,y=mathgain))+ylab("Gain in mathematics score")+xlab("Classroom")
+p + geom_point() + coord_flip()
+```
+
+
