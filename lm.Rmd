@@ -156,5 +156,27 @@ deviance(fm1)
 logLik(fm1)
 ```
 
+## More extractors
+
+```{r extractors}
+vcov(fm1) # estimated variance-covariance of parameter estimators
+anova(fm1)
+```
+
+## Even more extractors
+
+```{r confint}
+confint(fm1)
+df.residual(fm1)
+nobs(fm1)
+formula(fm1)
+```
+
+## Residuals and fitted values
+
+```{r residuals}
+residuals(fm1)
+fitted(fm1)
+```
 
 
