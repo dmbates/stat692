@@ -1,0 +1,68 @@
+---
+title: "Dealing with 'Big Data'"
+author: "Douglas Bates"
+date: '2014-10-17'
+output:
+  ioslides_presentation:
+    widescreen: yes
+---
+
+# Characteristics of "Big Data"
+
+## What is "Big Data"
+
+- The term "Big Data" has become a buzz phrase and lost meaning
+
+- Data can be "big" in different ways sometimes characterized as the "Four V's"
+    1. Volume: a very large data set
+    2. Velocity: data arriving or changing rapidly
+    3. Variety: combine information for many different sources
+    4. Veracity: trying to extract information from questionable sources
+
+## Big Data in R
+
+- `R` can now handle easily what used to be considered large data sets (several megabytes)
+
+- There are characteristics of `R` that make scaling to current "Big Data" difficult
+    - Slow(ish) interpreter
+    - Single threaded
+    - In-memory storage of all objects
+    - Conservative approach to creating copies
+
+- `R` is not suited to real-time processing of data streams
+
+## Big Volume data in `R`
+
+- The first problem people encounter applying `R` to large volumes of data is reading the data.
+
+- There is a manual "R Data Import/Export".  Before you claim, "R can't read my large data set", read this manual.
+
+- The `read.table`, `read.csv`, `read.delim` functions are not magic.
+     - for moderate sized data sets you can just give them a file name or URL
+     - with no additional information they will read all the data in one format then see if it can be stored more efficiently
+     - if you don't indicate how many rows there are in the data set, `R` must keep increasing the size of vectors, an expensive operation.
+
+## An example
+
+- Yesterday a person filed an issue on the Julia DataFrames package about getting a segfault when reading data from https://archive.ics.uci.edu/ml/machine-learning-databases/00216/
+
+- If you download and expand the zip archive, the `.csv` file contained in it is 4.5 Gb.
+```sh
+/tmp$ ls -lh amzn-anon-access-samples-2.0.csv 
+-rwxrwxr-x 1 bates bates 4.5G Sep 13  2011 amzn-anon-access-samples-2.0.csv
+```
+
+- There is a moderate number of rows but many columns
+```sh
+/tmp$ wc -l amzn-anon-access-samples-2.0.csv 
+36064 amzn-anon-access-samples-2.0.csv
+```
+
+- Furthermore, the structure is jumbled.  Almost all the entries are `"0"` but some are literal integers like `33267`.
+
+## Assisting the `read.table` functions
+
+- If you know the number of rows and the type of data in each column, specify these.
+
+- If the data are in a .csv or tab-delimited file, you can count the number of lines on Linux or OS X with the `wc` program
+
