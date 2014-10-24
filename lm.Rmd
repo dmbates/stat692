@@ -10,8 +10,9 @@ output:
 ```{r preliminaries,echo=FALSE,results='hide'}
 library(knitr)
 library(ggplot2)
+library(hexbin)
 opts_chunk$set(cache=TRUE)
-options(width=120)
+options(width=100)
 ```
 
 # Simple linear regression
@@ -68,7 +69,7 @@ summary(fm1)
 ## Suppressing "significance stars"
 - One of the worst decisions in `R` development was adding "significance stars" to the `summary` output for many models.
 - They are optional.  Unfortunately, the default is to have them.
-```{r}
+```{r signifstars,cache=FALSE}
 options(show.signif.stars=FALSE)
 summary(fm1)
 ```
@@ -84,7 +85,7 @@ str(mm1)
 
 ## The Intercept term
 
-- Many "statistical packages" assume that an intercept will be included in a model and provide syntax for suppressing it.
+- Many "statistical packages" assume that an intercept will be included in a model.
 - I prefer to indicate the intercept explicitly by writing the formula as `1 + BodyWt`
 - To suppress the intercept you must write the formula as `0 + BodyWt`
 - The intercept term generates the initial column of 1's in the model matrix
@@ -151,32 +152,83 @@ methods(class=class(fm1))
 - Try to use such functions whenever possible so as to "future proof" your code.
 - When writing code for your own model fitting, provide extractors when possible
 ```{r coeff}
-coef(fm1)
-deviance(fm1)
-logLik(fm1)
+coef(fm1)      # estimates of the coefficients
+deviance(fm1)  # residual sum of squares
+logLik(fm1)    # log-likelihood
 ```
 
 ## More extractors
 
 ```{r extractors}
-vcov(fm1) # estimated variance-covariance of parameter estimators
-anova(fm1)
+vcov(fm1)      # estimated variance-covariance of coefficient estimators
+anova(fm1)     # analysis of variance table (trivial in this case)
 ```
 
 ## Even more extractors
 
 ```{r confint}
-confint(fm1)
-df.residual(fm1)
-nobs(fm1)
-formula(fm1)
+confint(fm1)   # confidence intervals on the coefficients
+df.residual(fm1) # degrees of freedom for residuals
+nobs(fm1)      # number of observations used to fit the model
+formula(fm1)   # formula for the model matrix
 ```
 
-## Residuals and fitted values
+## Fitted values
 
 ```{r residuals}
-residuals(fm1)
 fitted(fm1)
 ```
 
+## Residuals (raw)
 
+- weighted residuals are available as `residuals(fm1,type = "pearson")` or as `weighted.residuals(fm1)`
+```{r rawresiduals}
+unname(residuals(fm1))  # suppress printing of names
+```
+
+## Various kinds of cooked residuals
+
+- other generics provide the "studentized" residuals, `rstudent`, and the standardized residuals
+```{r studentized}
+unname(rstudent(fm1))
+```
+
+# Numerical methods, including simulation
+
+## Simulating responses from a fitted model
+
+- For generality the `simulate` generic returns a `data.frame` of simulated responses
+```{r strsimulate}
+str(simulate(fm1,nsim=10L))
+```
+
+## Conversion to a matrix
+```{r datamatrix}
+str(yy <- data.matrix(simulate(fm1,nsim=10000L)))
+```
+- It is very slow to fit the simulated responses in a loop calling `lm`
+- The response in a call to `lm` can be a matrix.
+```{r multipleRHS}
+system.time(fms <- lm(yy ~ 1 + log(BodyWt),brains))
+str(cc <- coef(fms))
+```
+
+## Coefficients from simulated data
+```{r plot,echo=FALSE}
+ccf <- unname(as.data.frame(t(cc)))
+names(ccf) <- c("Intercept","logBodyWt")
+qplot(Intercept,logBodyWt,data=ccf,geom="hex")
+```
+
+
+## `qr` and `effects`
+
+```{r qr}
+str(qr(fm1))
+```
+
+- Objects of class `qr` represent an orthogonal-triangular or QR decomposition of a matrix
+
+```{r effects}
+str(ee <- effects(fm1))
+```
