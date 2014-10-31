@@ -11,6 +11,7 @@ output:
 library(knitr)
 library(ggplot2)
 library(hexbin)
+library(xtable)
 opts_chunk$set(cache=TRUE)
 options(width=100)
 ```
@@ -214,7 +215,7 @@ str(cc <- coef(fms))
 ```
 
 ## Coefficients from simulated data
-```{r plot,echo=FALSE}
+```{r plot,echo=FALSE,fig.align='center'}
 ccf <- unname(as.data.frame(t(cc)))
 names(ccf) <- c("Intercept","logBodyWt")
 qplot(Intercept,logBodyWt,data=ccf,geom="hex")
@@ -324,6 +325,17 @@ e2 <- effects(fm2)
 attr(e2,"assign")
 c(e2[1]^2,crossprod(e2[2:6]),crossprod(e2[-(1:6)])) # sequential sum-of-squares decomposition
 ```
+## Using `xtable`
+
+```{r summaryfm2xtable,results='asis',echo=FALSE}
+options(xtable.type="html")
+xtable(fm2)
+oldclass <- class(fm2)
+class(fm2) <- "lm"
+xtable:::xtable(fm2)
+class(fm2) <- oldclass
+```
+
 
 ## Model matrix
 
@@ -346,7 +358,27 @@ contrasts(model.frame(fm2)$spray)
 attr(model.frame(fm2),"terms")
 ```
 
+## Crossproduct form
 
+- the crossproduct matrix, $\bf X'X$ has the form
+```{r xtx1}
+crossprod(model.matrix(fm2))
+```
+
+## An `aov` model is a `lm` model (class inheritance)
+
+```{r summaryfm2}
+summary.lm(fm2)
+```
+
+## Interpretation of coefficients
+
+- The default contrasts for a factor are `contr.treatment` and for an ordered factor `contr.poly`
+- In the `treatment` contrasts the indicators of the factor levels are generated and the first column dropped
+```{r contrtreatment}
+contr.treatment(2)
+contr.treatment(3)
+```
 
 
 
