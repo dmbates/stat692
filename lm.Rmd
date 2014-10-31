@@ -224,7 +224,7 @@ qplot(Intercept,logBodyWt,data=ccf,geom="hex")
 ## `qr` and `effects`
 
 ```{r qr}
-str(qr(fm1))
+str(QR <- qr(fm1))
 ```
 
 - Objects of class `qr` represent an orthogonal-triangular or QR decomposition of a matrix
@@ -232,3 +232,122 @@ str(qr(fm1))
 ```{r effects}
 str(ee <- effects(fm1))
 ```
+
+## Properties of `Q` and `R`
+
+- The orthogonal triangular decomposition of an $n\times p$ matrix $\bf X$ is
+$$\bf X = QR = Q_1R_1$$
+where $\bf Q$ is $n\times n$ and orthogonal (i.e. $\bf Q'Q=QQ'=I_{\rm n}$) and the $n\times p$ matrix $\bf R$ is zero below the main diagonal.  In the condensed form $\bf Q_{\rm 1}$ is $n\times p$ and $\bf R_{\rm 1}$ is $p\times p$ and upper triangular.
+
+- Multiplication of a vector, $\bf y$, by $\bf Q$ or by $\bf Q'$ preserves its length.
+$$\bf\|Q'y\|^2=y'QQ'y=y'y=\|y\|^2$$
+so the residual sum of squares can be written
+$$\|\bf y-X\beta\|^2=\|Q'(y-X\beta)\|^2=\|Q'y-Q'QR\beta\|^2=\|c_{\rm 1}-R_{\rm 1}\beta\|^2+\|c_2\|^2$$
+where $\bf c_{\rm 1}$ is the first $p$ elements of $\bf Q'y$ and $\bf c_{\rm 2}$ is the last $n-p$.
+
+- If $\bf X$ has full column rank, which amounts to saying that the diagonal elements of $\bf R_{\rm 1}$ are non-zero, then the least squares estimates, $\widehat{\beta}=\arg\min_{\beta}\|y-X\beta\|^2$, is the solution to
+$$\bf R_{\rm 1}\widehat{\beta}=c_{\rm 1}$$
+
+## Methods for `qr` objects
+
+- Functions for working with objects that later got the tag `qr` were introduced in S before S3 methods
+- The names of these functions do not follow the usual naming conventions.  They begin with `qr.`.  The methods are
+    - `qr.Q` - return $\bf Q_{\rm 1}$ (the default) or $\bf Q$
+    - `qr.R` - return $\bf R_{\rm 1}$ (the default) or $\bf R$
+    - `qr.X` - reconstruct $\bf X$ from the decomposition
+    - `qr.qty` - create $\bf Q'y$ from $\bf y$ without evaluating $\bf Q$ explicitly
+    - `qr.qy` - as above but for $\bf Qy$
+    - `qr.resid` - evaluate $\bf Q_{\rm 2}Q_{\rm 2}'y$ without evaluating $\bf Q$
+    - `qr.fitted` - evaluate $\bf\widehat{y} = Q_{\rm 1}Q_{\rm 1}'y$
+    - `qr.coef` - evaluate $\widehat{\beta}$ from $\bf y$
+
+## Examples of using `qr.*` methods
+
+```{r qandr}
+(R <- qr.R(QR))
+str(Q1 <- qr.Q(QR))
+zapsmall(crossprod(Q1)) # equivalent to Q₁'Q₁
+```
+
+## More methods
+```{r moremethods}
+str(y <- model.response(model.frame(fm1)))
+all.equal(unclass(ee),qr.qty(QR,y),check.attributes=FALSE)
+(rss <- as.vector(crossprod(ee[-(1:2)])))  # squared length of c₂
+all.equal(deviance(fm1), rss)
+```
+
+## Even more methods
+```{r evenmore}
+(betahat <- backsolve(R,ee[1:2]))
+c(all.equal(betahat,unname(qr.coef(QR,y))),all.equal(qr.coef(QR,y),coef(fm1)),
+  all.equal(qr.fitted(QR,y),fitted(fm1)),all.equal(qr.resid(QR,y),resid(fm1)))
+anova(fm1)[["Sum Sq"]]
+ee[1:2]^2  # "sequential" sums of squares from the effects vector
+```
+
+## Numerical linear algebra is not what you learned in an intro course
+
+- In an intro course you use matrix inverses all the time.  In numerical linear algebra you almost never evaluate an inverse.
+- In an intro course the rank of a matrix is well-defined.  In floating point computation it isn't.
+- Numerical linear algebra is all about decompositions.  The least used is the eigenvalue-eigenvector.  In an intro course the only decomposition you discuss is the eigenvalue-eigenvector decomposition.
+- In an intro course you evaluate eigenvalues as the roots of the characteristic polynomial.  In numerical work you solve for the roots of a polynomial by determining the eigenvalues of a companion matrix.
+- One of the few instances of evaluating the inverse of a matrix is for the covariance of $\widehat{\beta}$ but it is $\bf R_{\rm 1}^{\rm -1}$, not $(\bf X'X)^{\rm -1}$ that is evaluated
+
+## Evaluating the covariance matrix
+
+```{r vcov}
+chol2inv(R)*deviance(fm1)/df.residual(fm1)
+vcov(fm1)
+QR$rank  # the computational rank of X
+```
+
+# Linear models and categorical covariates
+
+## "one-way" analysis of variance
+
+```{r insectsprays}
+str(InsectSprays)
+```
+```{r boxplot1,echo=FALSE,fig.height=2,fig.align='center'}
+qplot(reorder(spray,count),count,data=InsectSprays,geom="boxplot")+xlab("Spray")+ylab("Insect count")+coord_flip()
+```
+```{r boxplot2,echo=FALSE,fig.height=2,fig.align='center'}
+qplot(reorder(spray,count),count,data=InsectSprays,geom="boxplot")+xlab("Spray")+ylab("Insect count (square root scale)")+scale_y_sqrt()+coord_flip()
+```
+
+## Fitting an `aov` model
+```{r fm2}
+summary(fm2 <- aov(sqrt(count) ~ 1 + spray,InsectSprays))
+class(fm2)
+e2 <- effects(fm2)
+attr(e2,"assign")
+c(e2[1]^2,crossprod(e2[2:6]),crossprod(e2[-(1:6)])) # sequential sum-of-squares decomposition
+```
+
+## Model matrix
+
+```{r modelmatrixfm2}
+model.frame(fm2)$spray
+head(X <- model.matrix(fm2),15)
+```
+
+## Model matrix (cont'd)
+
+```{r modelmatrix2fm2}
+tail(X,20)
+```
+
+## Contrasts
+
+- a categorical covariate with $k$ levels is converted to $k-1$ columns of "contrasts" in the model matrix.
+```{r contrasts}
+contrasts(model.frame(fm2)$spray)
+attr(model.frame(fm2),"terms")
+```
+
+
+
+
+
+
