@@ -1,0 +1,359 @@
+---
+title: "Chapter 10: Regression models"
+author: "Douglas Bates"
+date: "11/07/2014"
+output: 
+    ioslides_presentation:
+        wide: true
+        small: true
+---
+```{r preliminaries,cache=FALSE,echo=FALSE,results='hide'}
+library(knitr)
+library(ggplot2)
+library(lattice)
+library(EngrExpt)
+opts_chunk$set(cache=TRUE,fig.align='center')
+options(width=100,show.signif.stars = FALSE)
+```
+
+# 10.1 Inference for a regression line
+
+## Section 10.1: Inference for a regression line
+
+- Recall that the simple linear regression model is
+  $$\mathcal{Y}_i=\beta_0+\beta_1 x_i+\epsilon_i,\quad i=1,\dots,n\quad \epsilon_i\sim\mathcal{N}(0,\sigma^2)$$
+- The least squares estimates, $\widehat{\beta}_0$ and
+  $\widehat{\beta}_1$, of the coefficients are functions of the data
+  and hence are random variables.  We associate _standard errors_ with these estimates.
+- The text derives formulas for the variance of the estimators.
+  The formulas can be interesting but do not easily extend to more
+  complex models.  It is easier to simply read the standard error from the output.
+- In the `R` output each coefficient estimate is accompanied by a `Std. Error` (standard error),
+  a `t value` (the ratio of the estimate to its standard error) and a `Pr(>|t|)`,
+  which is the p-value for the two-sided hypothesis test.  The `confint` extractor can be used to determine
+  confidence intervals.
+
+## The `timetemp` data
+
+```{r timetempplot,fig.align='center',echo=FALSE}
+qplot(temp,time,data=timetemp) + geom_point(aes(color=type)) + geom_smooth(method="lm",aes(color=type)) +
+    xlab("Temperature in freezer (degrees C)") + ylab("Time to reach operating temperature of -10 C (min)")
+```
+
+
+## Examples 10.1.1 and 10.1.2
+```{r ex10.1.1show,eval=FALSE}
+summary(fm1 <- lm(time ~ temp, timetemp, subset = type == "Repaired"))
+```   
+```{r ex10.1.1,echo=FALSE}
+cat(paste(capture.output(summary(fm1 <- lm(time ~ temp,
+                                           timetemp,
+                                           subset = type == "Repaired")))[-(1:8)],
+          collapse = "\n"), "\n")
+```
+
+```{r ex10.1.2}
+confint(fm1)
+``` 
+
+- The confidence interval, $[-2.099,-1.629]$, on $\beta_1$, the
+  slope, is of interest.  
+- The other confidence interval is not of
+  interest because $\beta_0$ is not meaningful for these data.
+
+## Example 10.1.3
+
+```{r fbuildplt,echo=FALSE,fig.height=2.75,fig.align='center',fig.width=10}
+fm2 <- lm(gloss ~ build, fbuild)
+print(xyplot(gloss ~ build, fbuild, type = c("g","p","r"),
+             xlab = "Film build", ylab = "gloss", aspect = 1),
+      split = c(1,1,3,1), more = TRUE)
+print(xyplot(resid(fm2) ~ fitted(fm2),
+             type = c("g", "p", "smooth")),
+      split = c(2,1,3,1), more = TRUE)
+print(qqmath(~resid(fm2), aspect = 1, ylab = "Residuals",
+             type = c("g", "p"), xlab = "Standard normal quantiles"),
+      split = c(3,1,3,1))
+```   
+```{r fm2prt1,echo=FALSE}
+cat(paste(capture.output(summary(fm2))[-(1:9)],
+          collapse = "\n"), "\n")
+
+```
+
+## Confidence intervals on the parameters
+
+```{r fm2confint}
+confint(fm2)
+``` 
+
+## Inference for coefficients
+
+- As seen in the previous slides, we can evaluate confidence
+  intervals on the coefficients, $\beta_0$ and $\beta_1$, with the
+  `confint` extractor function.
+- The formula for the $(1-\alpha)$ confidence interval on $\beta_1$ is
+  $$\widehat{\beta}_1\pm t(\alpha/2, \nu)\,s_{\beta_1}$$
+  where $\nu$ is the degrees of freedom for residuals ($n-2$ for a
+  simple linear regression) and $s_{\beta_1}$ is the standard error for the coefficient.
+- The observed $t$ statistic, $\widehat{\beta}_1/s_{\beta_1}$,
+  is used to perform tests of the hypothesis $H_0:\beta_1=0$.  The
+  p-value for the two-sided alternative is given in the coefficient
+  table.  The p-value for the one-sided alternative that is
+  indicated by the data will be half this value.  By "indicated by
+  the data". I mean the alternative $H_a:\beta_1>0$, if
+  $\widehat{\beta}_1>0$ and vice versa.
+
+## More on inference for coefficients
+
+- Testing $H_0:\beta_1=0$ versus the appropriate alternative is
+  usually of interest.  Tests on $\beta_0$ are not always of
+  interest as the intercept may not represent a meaningful response.
+
+- For a simple linear regression the F test reported in the
+  summary compares the model that was fit to a trivial model in
+  which all the fitted values are equal to $\bar{y}$.  You can also obtain this test as
+```{r anovafm1}
+anova(fm1)
+```
+
+- This test is equivalent to the t-test of $H_0:\beta_1=0$ _vs._ $H_a:\beta_1\ne0$.
+
+
+## Extracting the coefficients table only
+
+- The analysis of variance table can also be obtained by
+  explicitly comparing the model that was fit to the trivial model.
+```{r explicitanova}
+anova(update(fm1, . ~ . - temp), fm1)
+```     
+
+- Sometimes it is convenient to extract the table of coefficients, standard errors and test statistics.  You can do this by
+```{r coeftab}
+coef(summary(fm1))
+```
+
+## Inference on the expected response for $x=x_0$
+
+- In a regression model we consider the response as having a
+  normal distribution conditional on a particular value of the
+  covariate, $x=x_o$.
+- This distribution has an expected value, which we write as
+  $\mu_{\mathcal{Y}|x=x_o}$ or $\mathrm{E}(\mathcal{Y}|x=x_0)$.  Our estimate of
+  this conditional mean is $\widehat{\beta}_0+\widehat{\beta}_1x_0$.
+- Just as $\widehat{\beta}_0$ and $\widehat{\beta}_1$ are random
+  variables with standard errors, our estimate
+  $\widehat{\mu}_{\mathcal{Y}|x=x_o}$ has a standard error.
+- The estimate and its standard error can be evaluated with
+  `predict` and the optional argument `se.fit = TRUE`.
+
+```{r fm2pred}
+str(predict(fm2, list(build = 2.6), se.fit = TRUE)) # Ex 10.1.7
+``` 
+
+## Confidence intervals on the mean response
+
+- Typically we use the standard errors to form a confidence
+  interval on $\mu_{\mathcal{Y}|x=x_0}$, which we can create with the optional
+  argument `interval = "conf"` to predict.
+- In example 10.1.7 we wish to form a 90\% confidence interval
+  on the mean gloss when the film build is 2.6 mm
+
+```{r predfm2}
+predict(fm2, list(build = 2.6), int = "conf", level = 0.90)
+```   
+
+-  We can use the estimate and its standard error to conduct
+  hypothesis tests but generally we are more interested in the
+  confidence intervals.  Occasionally we want to test $H_0:\beta_0=0$
+  versus one of the alternatives and this is a test on the mean
+  response when $x=0$.  We can obtain the p-value for this test from
+  the table of coefficients.
+
+
+## Inference for a future value of $\mathcal{Y}$
+
+- Note that the confidence interval on $\mu_{\mathcal{Y}|x=x_0}$ refers
+  to the mean response at $x=x_0$, not the response that we will
+  observe.
+- If we want a prediction interval at $x=x_0$ then we must
+  formulate it as $\mathcal{Y}_0=\mu_{\mathcal{Y}|x=x_0}+\epsilon_0$ which we
+  estimate as
+  $$\mathrm{E}[\mathcal{Y}_0]=\widehat{\beta_0}+\widehat{\beta_1}x_0$$
+  with a standard error of $\sqrt{s_{\hat{\mu}}^2+s^2}$.
+- A 90% prediction interval on the gloss at a build of 3 mm. is
+
+```{r predfm21}
+predict(fm2, list(build = 3:4), int = "pred", level = 0.90)
+```   
+
+## Testing for lack of fit
+
+- One of the assumptions in a simple linear regression is that
+  the relationship between $\mathcal{Y}$ and $x$ is reasonably close to a
+  straight line over the range of interest.
+- If we have replicates in the data then we can check this
+  assumption by evaluating the sum of squares due to replication
+  (the pooled sum of squares of the deviations about the average
+  within replicates) and what is called the _mean square for lack of fit_.
+- There are various ways of calculating these quantities, some
+  with unsatisfactory numerical properties.  A simple way of doing
+  this test is to compare the linear model to a model with the
+  covariate $x$ as a factor.
+
+
+## Example 10.1.10 
+
+```{r phplt,echo=FALSE,fig.height=2.75,fig.align='center',fig.width=10}
+fm4 <- lm(phnew ~ phold,phmeas)
+print(xyplot(phnew ~ phold, phmeas, type = c("g","p","r"),
+             xlab = "pH by old method",
+             ylab = "pH by new method", aspect = 1),
+      split = c(1,1,3,1), more = TRUE)
+print(xyplot(resid(fm4) ~ fitted(fm4),
+             type = c("g", "p", "smooth")),
+      split = c(2,1,3,1), more = TRUE)
+print(qqmath(~resid(fm4), aspect = 1, ylab = "Residuals",
+             type = c("g", "p"), xlab = "Standard normal quantiles"),
+      split = c(3,1,3,1))
+```   
+
+```{r fm2prt,echo=FALSE}
+cat(paste(capture.output(summary(fm4))[-(1:9)],
+          collapse = "\n"), "\n")
+``` 
+
+To perform the lack of fit test we compare this model fit to one with `phold` treated as a factor.
+
+## Example 10.1.10 (cont'd)
+```{r lackoffit}
+anova(fm4, lm(phnew ~ factor(phold), phmeas))
+```   
+
+- Note that this result is different from the result shown in the
+  text.  In the text they use only one of the sets of replicates.
+  Here we use both.
+- The computer is better at picking up repetitions in the
+  covariate than are humans.
+- In either calculation there is no significant evidence of lack
+  of fit.  We prefer the calculation with more denominator degrees of
+  freedom (the one shown above).  More denominator degrees of freedom
+  produces a more powerful test.
+
+# 10.2 Inference for other regression models
+
+## Section 10.2: Inference for other regression models
+
+- As seen in chapter 3, regression models can incorporate many
+  different types of terms (see p. 386).
+- Inferences on the coefficients in such a model can be
+  performed using the information in the coefficients table.
+- We must, however, be careful of the interpretation of the
+  tests.  For example, if we fit a quadratic (next slide) then we
+  generally are not interested in testing $H_0:\beta_1=0$ in the
+  presence of the quadratic term.
+- The general rule is that the t-test in the coef table is a
+  test of removing only that term and keeping all the other terms in
+  the model.  Ask yourself if it would be a sensible model with that
+  term omitted.
+
+```{r ex336,echo=FALSE,results='hide'}
+ex336 <- data.frame(x = c(18,18,20,20,22,22,24,24,26,26),
+           y = c(4.0,4.2,5.6,6.1,6.5,6.8,5.4,5.6,3.3,3.6))
+```   
+## Example 10.2.1
+
+```{r partszplt,echo=FALSE,fig.height=2.75,fig.align='center',fig.width=10}
+fm5 <- lm(y ~ x + I(x^2), ex336)
+print(xyplot(y ~ x, ex336, type = c("g","p"),
+             xlab = "Vacuum setting",
+             ylab = "Particle size", aspect = 1),
+      split = c(1,1,3,1), more = TRUE)
+print(xyplot(resid(fm5) ~ fitted(fm5),
+             type = c("g", "p", "smooth")),
+      split = c(2,1,3,1), more = TRUE)
+print(qqmath(~resid(fm5), aspect = 1, ylab = "Residuals",
+             type = c("g", "p"), xlab = "Standard normal quantiles"),
+      split = c(3,1,3,1))
+```   
+
+```{r fm5,echo=FALSE}
+cat(paste(capture.output(summary(fm5))[-(1:9)], collapse = "\n"), "\n")
+```   
+
+## Confidence intervals on the coefficients of the quadratic
+
+```{r confint}
+confint(fm5)
+``` 
+
+## Prediction intervals and confidence intervals
+
+- Prediction intervals and confidence intervals on
+  $\mu_{\mathcal{Y}|x=x_0}$ are calculated as before.  We must specify
+  values for all the covariates in the model but we do not need to
+  specify both $x$ and $x^2$.  Higher-order terms are evaluated from
+  the formula.
+
+```{r preds}
+predict(fm5, list(x = 21), int = "pred")
+predict(fm5, list(x = 21), int = "conf")
+```   
+
+## Testing lack of fit
+
+- We test lack of fit as before.  If we have more than one
+  covariate we must use a cell-means model with all of the
+  covariates as factors.
+
+```{r fm5lof}
+anova(fm5, lm(y ~ factor(x), ex336))
+```
+
+# Models with continuous and categorical covariates
+
+## Both continuous and categorical (`timetemp`)
+
+```{r timetempplotrevisited,fig.align='center',echo=FALSE}
+qplot(temp,time,data=timetemp) + geom_point(aes(color=type)) + geom_smooth(method="lm",aes(color=type)) +
+    xlab("Temperature in freezer (degrees C)") + ylab("Time to reach operating temperature of -10 C (min)")
+```
+
+## Model with main effects for type only
+
+```{r fm6}
+summary(fm6 <- lm(time ~ 1 + type + temp, timetemp))
+```
+- the `typeOEM` coefficient is the change in intercept from `Repaired` to `OEM`.  The `time` coefficient is the common slope.
+
+## Model with main effects and interaction
+
+```{r fm7}
+summary(fm7 <- lm(time ~ 1 + type*temp, timetemp))
+```
+
+# Regression plots using `ggplot2`
+
+## The `fortify` function
+
+- The `ggplot2` package provides a `fortify` function that, when applied to a fitted model produces a frame like the model frame but with several additional columns.  See the [docs](http://docs.ggplot2.org/current/fortify.lm.html)
+
+```{r fortifyfm6}
+str(fm6f <- fortify(fm6))
+```
+
+## Producing a quantile-quantile plot with fortify
+
+- Using `stat = "qq"` in `qplot` produces a plot of sample quantiles versus standard normal quantiles.
+```{r qqfm6,echo=FALSE,fig.align='center',fig.width=5,fig.height=5}
+qplot(sample=.stdresid,data=fm6f,stat="qq") + xlab("Standard normal quantiles") + ylab("Standardized residuals")+coord_equal()
+```
+
+## Plotting fitted values
+
+```{r fm6fitted,echo=FALSE,fig.align='center'}
+qplot(temp,time,data=fm6f)+geom_point(aes(color=type)) + geom_line(aes(x=temp,y=.fitted,color=type))+xlab("Temperature in freezer (degrees C)") + ylab("Time to reach operating temperature of -10 C (min)")
+```
+
+
+
