@@ -1,0 +1,397 @@
+---
+title: "Chapter 9: Multi-factor experiments"
+author: "Douglas Bates"
+date: "11/07/2014"
+output: 
+    ioslides_presentation:
+        wide: true
+        small: true
+---
+```{r preliminaries,cache=FALSE,echo=FALSE,results='hide'}
+library(knitr)
+library(ggplot2)
+library(lattice)
+library(EngrExpt)
+opts_chunk$set(cache=TRUE)
+options(width=100,show.signif.stars = FALSE)
+```
+
+# 9.1 ANOVA for multi-factor experiments
+
+ 
+## Chapter 9: Multi-factor experiments
+
+- We are not limited to using two factors in an experiment.
+Especially in screening experiments, where we are seeking to
+distinguish the "important few" factors from the "trivial
+many", it is useful to incorporate many factors.
+- Incorporating many factors, each with several levels, results
+in a large number of combinations of levels.  If we want
+replicates the number of observations required is even larger.
+- One way to reduce the number of observations required is to
+use a small number of levels. We often use just two levels.
+- At two levels, there is no distinction between a numeric
+covariate, a categorical covariate or an ordered category.  For
+technical reasons we often represent such a factor as an ordered
+category.
+
+# 9.1 Multi-factor ANOVA
+ 
+## Section 9.1: ANOVA for multi-factor experiments
+
+- For a replicated design we proceed as for two-factor
+experiments and fit a model with all possible interactions.
+- We check the highest-order interaction first.  If it is not
+significant we re-fit without that term and continue checking.  In
+a balanced factorial design omitting certain interactions will not
+change the estimates of coefficients for other interactions, but
+it will change $\text{MS}_e$.
+- The formula for model with all possible interactions has
+`*` between the factors.
+- We can modify the formula by "subtracting" particular terms
+using the `update` function.
+ 
+## Example 9.1.1: Battery separator data
+```{r strsep}
+str(separate)
+```   
+
+```{r separateplt,echo=FALSE,fig.height=2.5,fig.align='center'}
+dotplot(silica ~ y|temp,separate,groups=time,type=c("p","a"),
+              ylab = "Silica level", layout = c(1,2),
+              xlab = "Electrical resistance (panels are temperature levels)",
+              strip = FALSE, strip.left = TRUE,
+              auto.key = list(space = "right", title = "Time",
+              lines = TRUE))
+```   
+ 
+## Example 9.1.1 (cont'd)
+For a 2-level factor we use the "Helmert" or "sum" contrasts, both of which result in a $\pm1$ encoding 
+```{r fm1}
+options(contrasts = c("contr.treatment", "contr.helmert"))
+summary(fm1 <- aov(y ~ time * temp * silica, separate))
+```   
+- We see that the highest-order interaction term is significant.
+In such cases we generally retain all the lower-level interactions
+and the main effects whether or not they have small p-values.  (In
+this case they all do.)
+ 
+## Example 9.1.1 (cont'd)
+Checking the encoding of main effects and interactions
+```{r modelmatrixfm1}
+model.matrix(fm1)
+```
+## Example 9.1.1 (cont'd)
+This type of design and factor encoding produces an "orthogonal" model matrix.
+```{r cprodmodelmatrixfm1}
+unname(crossprod(model.matrix(fm1)))
+```
+
+## Example 9.1.1 (cont'd)
+
+- There are two approaches for follow-up.  We can consider the 8
+different combinations of factor levels as 8 levels in a
+one-factor model or we can condition on a level of one factor and
+consider the others.
+
+```{r fm1a}
+summary(fm1a <- aov(y ~ time * silica, separate, subset = temp == "High"))
+summary(fm1b <- aov(y ~ time + silica, separate, subset = temp == "High"))
+``` 
+ 
+## Blocking with multiple experimental factors
+
+- It is not uncommon to have blocking factors in a multi-factor
+design.  These are known sources of variability that cannot (or
+should not) be held constant.
+- As before, we list blocking factors first in any model
+formula.  This is not important for balanced data but can be
+important with unbalanced data.
+
+```{r xmp9.1.2}
+str(defect <-
+    data.frame(num = c(9,9,5,5,7,8,2,3,8,7,4,4),
+               op = gl(3,4),
+               app = gl(2,2,12,labels = c("A","B")),
+               size = gl(2,1,12)))
+``` 
+ 
+ 
+## Structure of defect data
+```{r ftable}
+ftable(xtabs(num ~ op+size+app, defect)) # compare Table 9.7
+summary(fm2 <- aov(num ~ op + size * app, defect))
+```   
+ 
+## Reduced models
+```{r fm34}
+summary(fm3 <- aov(num ~ op + size + app, defect))
+summary(fm4 <- aov(num ~ op + app, defect))
+```   
+- There is no need for multiple comparisons of levels of
+`app` (there are only two levels).
+- Generally we don't compare levels of `op` because it is a
+blocking factor.  In this case we may want to investigate why there
+is such a large variability between operators.
+ 
+## Unreplicated multi-factor designs
+
+- If we allow the highest-order interaction term in an
+unreplicated factorial design we will have no degrees of freedom
+for error.  
+- We can remove the highest-order interaction by using
+"powers" in the formula to restrict to interactions up to a
+specific order.
+
+```{r defoam}
+str(defoam)
+```   
+ 
+## Plots of the defoam data
+
+```{r defoamplt,echo=FALSE,fig.height=4.5,fig.width=9,fig.align='center'}
+print(dotplot(pH ~ height|conc, defoam, groups = temp,
+              xlab = "Height of solution", type = c("p","a"),
+              auto.key = list(columns = 3, lines = TRUE),
+              layout = c(1,3), aspect = 0.35,
+              strip = FALSE, strip.left = TRUE,
+              ylab = "pH within concentration"),
+      split = c(1,1,2,1), more = TRUE)
+print(dotplot(pH ~ height|temp, defoam, groups = conc,
+              xlab = "Height of solution", type = c("p","a"),
+              auto.key = list(columns = 3, lines = TRUE),
+              layout = c(1,3), aspect = 0.35,
+              strip = FALSE, strip.left = TRUE,
+              ylab = "pH within temperature"),
+      split = c(2,1,2,1))
+```     
+
+- Note that there are effectively no differences due to
+concentration, at the levels examined.
+ 
+## Models for the defoam data
+
+```{r fm56}
+summary(fm5 <- aov(height ~ (conc + pH + temp)^2, defoam))
+summary(fm6 <- aov(height ~ (pH + temp)^2, defoam))
+```   
+
+# 9.2 $2^k$ factorials
+ 
+## Section 9.2: $2^k$ factorial designs
+
+- A commonly used type of screening design is a $2^k$ factorial
+design in which each of $k$ factors is examined at 2 levels only.
+- Such a design will only detect linear trends and possible
+interactions.  It cannot, for example, detect a quadratic
+relationship reliably (Fig. 9.9).
+- One technical point, it can be an advantage to represent the
+2-level factors as `ordered` and to use the "Helmert"
+contrasts for ordered factors.  These provide a +/- coding in the
+model matrix.
+
+```{r opcontr}
+str(dents <- data.frame(ok = c(917,600,953,750,735,567,977,647),
+                        A = gl(2,1,8,ord=1), B = gl(2,2,8,ord=1),
+                        C = gl(2,4,ord=1)))
+```   
+
+## Plots of the dents data
+  
+```{r dentplt,echo=FALSE,fig.align='center',fig.height=4.5,fig.width=9}
+print(dotplot(A ~ ok|B, dents, groups = C,
+              xlab = "Number of dent-free assemblies", type = c("p","a"),
+              auto.key = list(columns = 2, lines = TRUE),
+              layout = c(1,2), aspect = 0.7,
+              strip = FALSE, strip.left = TRUE,
+              ylab = "film thickness within oil mixture"),
+      split = c(1,1,2,1), more = TRUE)
+print(dotplot(A ~ ok|C, dents, groups = B,
+              xlab = "Number of dent-free assemblies", type = c("p","a"),
+              auto.key = list(columns = 2, lines = TRUE),
+              layout = c(1,2), aspect = 0.7,
+              strip = FALSE, strip.left = TRUE,
+              ylab = "film thickness within glove type"),
+      split = c(2,1,2,1))
+```     
+ 
+## Model fits for the dents data
+```{r fm7}
+summary(fm7 <- aov(ok ~ (A+B+C)^2, dents))
+``` 
+
+None of the two-factor interactions are significant (but it is very
+difficult to show significance with 1 degree of freedom for residuals).
+```{r fm8}
+summary(fm8 <- aov(ok ~ A+B+C, dents))
+```   
+
+## Model fits for the dents data (cont'd)
+```{r fm9}
+summary(fm9 <- aov(ok ~ A+B, dents))
+```   
+
+```{r sumlm9,eval=FALSE}
+summary.lm(fm9)
+``` 
+```{r sumlm9res,echo=FALSE}
+cat(paste(capture.output(summary.lm(fm9))[-(1:8)], collapse = "\n"))
+``` 
+
+## Fitted values for the dents data
+
+```{r fitted}
+fitted(fm9)
+``` 
+ 
+## Interpretation of coefficients
+
+- The coefficients shown in the `summary.lm` output are in
+the +/- encoding.  The `(Intercept)` is the response for a
+"typical" setting; the `A1` coefficient is added to this
+for the high level of `A` and subtracted for the low level.
+Similarly for `B1`.
+- That is, the fitted values are the `(Intercept)` plus the
+four possible combinations of $\pm\text{A1}$ and $\pm\text{B1}$.
+- `Yates' algorithm` is a method for determining these
+coefficient estimates by hand calculation.  It is interesting but
+no longer needed.
+- Notice also that the standard errors of all the coefficients
+are identical.  This provides an alternative approach to
+evaluating the significance of coefficients in a `saturated`
+model (as many coefficients as there are responses).  We examine a
+normal probability plot of the coefficient estimates (excluding
+the intercept) which we expect to have outliers.  The non-outliers
+are the "trivial many".  The outliers are the "important few".
+ 
+## QQ-plot of coefficients from the saturated model
+```{r coeffm10}
+(cc <- coef(fm10 <- lm(ok ~ A * B * C, dents))[-1])
+```   
+
+```{r probplt,echo=FALSE,fig.height=3.5,fig.align='center'}
+qqmath(~ cc, aspect = 1,
+       xlab = "Standard normal quantiles",
+       ylab = "Estimated coefficients",
+       panel = function(...){
+                   panel.grid(h = -1, v = -1)
+                   panel.qqmath(...)
+                   panel.qqmathline(...)
+                })
+``` 
+
+## Interpretation of the QQ plot of coefficient estimates
+
+- The plot on the previous slide indicates that 2 coefficients
+are the "important few". Checking the listing of the
+coefficients we see that these are the main effects for `A` and for
+`B` --- the same conclusion as before.
+- Generally this approach is preferred to the approach of
+testing for two-factor interactions using F tests with only 1
+denominator degree of freedom.  F tests with very few denominator
+degrees of freedom are not at all powerful.
+- One variation on this approach is to compare the absolute
+value of the coefficients to the theoretical quantiles.  This is
+called a "half-normal" plot.
+- It is not part of the course but the way to create such a plot
+is shown on the next slide.  In this plot you are only interested
+in the large magnitudes.  The "reference line" would be a line
+passing through the origin.  You imagine the low magnitudes as
+falling near such a line with the high values above the line.
+ 
+## Half-normal plot of saturated model coefficients
+  
+```{r halfnormal,fig.height=4,fig.align='center'}
+qqmath(~ abs(cc), aspect=1, type = c("g","p"), distribution = function(p)sqrt(qchisq(p, df=1)))
+```     
+
+Here you could make a case for 5 values near the line (and 2
+above) or for 6 values near the line and only one above.
+ 
+
+# 9.3 Fractional factorial designs
+ 
+## Section 9.3 Fractional factorial designs
+
+- When the number of factors in a design is large or the cost
+per observation is high, even an unreplicated $2^k$ factorial
+design may be too expensive.  We can choose to run a fraction of
+the full factorial design.
+- The most common such `fractional factorial design` is a
+$\frac{1}{2}$ fraction of the $2^k$, sometimes written as a
+$2^{k-1}$ design.
+- We must choose the fraction carefully.  We will not be able to
+estimate all the main effects and interactions as they will be
+`aliased`.  We don't want potentially important effects or
+interactions to be aliased with each other.
+- When creating a $2^{k-1}$ design we confound the last factor
+with the highest order interaction of the preceeding factors.
+That is, we lay out a full factorial on $k-1$ two-level
+factors then determine the highest order interaction and use it to
+establish the low/high levels for the next factor.
+
+ 
+ 
+## A half-fraction of a $2^k$ design
+
+- For a $2^{4-1}$ design (example 4.3.2) the first step is
+
+```{r xmp932}
+xmp932 <- data.frame(A = gl(2,1,8,ord=1), B = gl(2,2,8,ord=1),
+                     C = gl(2,4,ord=1))
+model.matrix(~ A * B * C, xmp932)
+```   
+
+## Example 9.3.2 (cont'd)
+
+- We choose the low/high levels for factor `D` to be the
+same as the ABC interaction in the previous slide.  That is we
+generate `D = ABC`.
+- The `generator` relationship is `I = ABCD`.  Not
+only are all the main effects confounded with a three-factor
+interaction but all the two-factor interactions are confounded
+with each other.
+- The responses are observed and incorporated and we fit the
+saturated model on the first $k-1$ factors
+
+```{r xmp932obs}
+xmp932 <- within(xmp932, {
+    D <- ordered(c(1,2,2,1,2,1,1,2))
+    y <- c(3.6,10,8,3.2,7.6,3.2,3.7,6.0)
+})
+(cc2 <- coef(fm11 <- lm(y ~ A * B * C, xmp932))[-1])
+```   
+ 
+ 
+## Interpretation of coefficients
+  
+```{r probplt2,echo=FALSE,fig.height=4.5,fig.align='center'}
+qqmath(~ cc2, aspect = 1,
+       xlab = "Standard normal quantiles",
+       ylab = "Estimated coefficients",
+       panel = function(...){
+               panel.grid(h = -1, v = -1)
+               panel.qqmath(...)
+               panel.qqmathline(...)
+             })
+```   
+
+
+- The interpretation is that only the largest coefficient is
+important.  This can be the three-factor interaction `ABC` or
+the main effect `D`.  We assume it is the main effect that is
+important.
+
+## Resolution of fractional factorials
+
+- The defining relation (`I = ABCD`, in our example) is
+composed of `words`.  In this case there is only one word but
+for higher order fractions we use multiple words.
+- The _resolution_ of the design is the length of the
+shortest word in its defining relation.  Our example is a
+_resolution IV_ design.
+- A _resolution III_ design confounds some main effects
+with two-factor interactions.  A _resolution IV_ design
+confounds two-factor interactions with each other but not with
+main effects.
+- Generally we prefer resolution IV or higher.
