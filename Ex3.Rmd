@@ -1,0 +1,35 @@
+---
+title: 'Statistics 692, exercises #3'
+author: "Douglas Bates"
+date: "2014-10-28"
+output: 
+    pdf_document:
+        keep_tex: true
+        fig_caption: true
+---
+```{r initial,echo=FALSE,print=FALSE,cache=FALSE}
+library(knitr)
+library(ggplot2)
+opts_chunk$set(cache=TRUE)
+options(width=76, show.signif.stars = FALSE, str = strOptions(strict.width = "cut"))
+set.seed(123454321)
+``` 
+Your answers should be submitted as an _R Markdown_ (`Rmd`) document providing both the code you use and a brief description of each step.  The description should be written as if intended for the "client".
+
+Submit only the `.Rmd` file.  The file will be run through `knitr::knit` to verify that it produces the desired results.  Use `pdf_document` as the output format.  Allow them to float to the top or the bottom of the page.  Provide figure captions.
+
+These exercises will use the data frame `ufc` from the `alr4` package for R, containing forest inventory measures from the Upper Flat Creek stand of the University of Idaho Experimental Forest.  The package also contains 3 derived data frames; `ufcdf`, `ufcgf` and `ufcwc` containing the data for selected species (Douglas fir, grand fir and western red cedar, respectively).
+
+The measurements of interest are `Dbh`, diameter at breast height, and `Height`.  `Dbh` is easy to measure - you just walk up to the tree and wrap a tape measure around it at a height of 137 cm.   It is assumed that the trunk is close enough to circular in cross section that the circumference can be converted to a diameter.  Height is more difficult to measure accurately, especially in a dense forest stand or on uneven terrain.
+
+1. Clean then summarize the data.  Note that two covariates, `Plot` and `Tree` are categorical but stored as factors.
+
+2. Create and describe a "key graph" showing the relationship between `Height` and `Dbh` by tree species.  You may want to consider using `facet_wrap` instead of `facet_grid` for multipanel plots.  Also consider whether to transform the axes, say by taking logarithms.
+
+3. Create a data frame like `ucfwc` or modify the existing one deleting the non-informative `Species` variable.
+
+4. Fit models of `Height ~ Dbh` and `log(Height) ~ log(Dbh)` to the data from western red cedar trees only.  Plot the residuals versus the fitted values for each of these fitted models.  State which model you feel is more useful and why.
+
+5. Create and summarize a data frame with the measurements from species `WC`, `GF` and `DF` only.  Remember to use `droplevels` to avoid zero counts in the summary of `Species`.  Fit an additive model (i.e. `log(Height) ~ 1 + Species + log(Dbh)`).  Explain the meaning of each coefficient estimate. 
+
+6. Fit a model with different slopes and intercepts for `log(Dbh)` by `Species` to the data for `WC`, `GF` and `DF` trees only.  Explain the meaning of each coefficient estimate.
