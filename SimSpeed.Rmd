@@ -1,0 +1,356 @@
+---
+title: "Simulation Speed"
+author: "Douglas Bates"
+date: "11/12/2014"
+output:
+  pdf_document:
+    fig_caption: yes
+    keep_tex: yes
+    latex_engine: lualatex
+    number_sections: yes
+    toc: yes
+---
+```{r preliminaries,echo=FALSE,results='hide',cache=FALSE}
+library(knitr)
+library(ggplot2)
+opts_chunk$set(fig.align='center',fig.pos="tb",cache=TRUE)
+```
+
+# Speed of simulations
+
+Because simulations can take a long time, they provide good examples
+for comparing speed of R code and developing good programming
+techniques.
+
+## Loops versus apply versus ...
+
+We will compare different methods of simulating 100,000
+realizations of the sample mean from samples of size 9 from an
+exponential distribution with rate, $\lambda = 1$.
+```{r expsamp}
+    N <- 100000
+    n <- 9
+```
+
+
+For reference, the method suggested in the _Simulation studies using R_ document is
+```{r replicate}
+    set.seed(123)
+    system.time(resRepl <- replicate(N, mean(rexp(n))))
+```
+
+We see that on the machine I am using it takes a few seconds to
+produce the result, which is
+```{r}
+    str(resRepl)
+```
+
+### Simulating in a loop
+
+Programmers who have used compiled languages like C, C++, Fortran, or
+Pascal, and even byte-compiled languages like Java or C# can quickly
+adapt to using `for` loops in R.  The syntax in R is a bit different
+from those languages but the ideas of looping are familiar.
+
+Part of the folklore regarding R programming is that you should avoid
+writing `for` loops but the situation is more subtle than that.  You
+should avoid writing `for` loops *carelessly*.
+
+If you are going to produce a vector or a matrix (or, in general, an
+array) and you preallocate the structure then use replacement
+operations, looping is not bad.
+```{r resLoop1}
+    set.seed(123)
+    resLoop1 <- numeric(N)        # preallocate the result of correct size
+    system.time(for (i in 1:N) resLoop1[i] <- mean(rexp(n)))
+```
+
+We should, of course, check that the results are as expected
+```{r}
+    all.equal(resRepl, resLoop1)
+```
+
+The thing **not** to do in a loop is to grow the structure.  `R`
+allows you to assign a value beyond the end of a vector and it will
+automatically extend the size of the vector when this happens.
+However, this operation is not without cost.
+```{r resLoop2}
+    set.seed(123)
+    resLoop2 <- numeric()                   # empty numeric vector
+    system.time(for (i in 1:N) resLoop2[i] <- mean(rexp(n)))
+```
+
+This produces the same results
+```{r}
+    all.equal(resLoop2, resRepl)
+```
+\noindent but takes much longer.  
+
+Another idiom used by some is to initialize the result to `NULL` and concatenate
+each freshly simulated result onto the existing results.  Again, this
+involves a considerable amount of recopying of results and is slow.
+```{r resLoop3}
+    set.seed(123)
+    resLoop3 <- NULL                        # empty list
+    system.time(for (i in 1:N) resLoop3 <- c(resLoop3, mean(rexp(n))))
+
+    str(resLoop3)
+```
+
+
+## Using arrays
+
+At one time it was important to take into consideration the overhead
+of calls to R functions and avoid putting too many functions inside a
+loop.  That is less of an urgent consideration on modern computers.
+Although the interpreter overhead is still present on modern computers
+it is not as big an issue.
+
+Nevertheless it is good to see how such a simulation could be done by
+creating all the random numbers from the exponential distribution in
+one call and then reducing each subsample.  We arrange the `n*N`
+values into an $n\times N$ matrix.  (We could make it $N\times n$ but
+there is a slight advantage in having subsamples in columns rather
+than rows.)
+```{r matrixsim}
+    set.seed(123)
+    str(MM <- matrix(rexp(n*N), nr = n))
+```
+
+### Reducing the array using the `colMeans` function
+
+At this point we can make use of a very fast, built-in function called
+`colMeans` to evaluate the means of the columns.  So that timing
+comparisons with other methods are fair, we regenerate the matrix
+before taking the column means.
+```{r matrixsim2}
+    set.seed(123)
+    system.time(resColMeans <- colMeans(matrix(rexp(n*N), nr = n)))
+```
+
+As we can see, this method is the clear winner for speed and we can
+check with 
+```{r}
+    all.equal(resColMeans, resRepl)
+```
+\noindent to see that it does produce the same set of simulated values.  (This,
+by the way, is another reason to use put subsamples in the columns and
+to use `colMeans` to reduce the matrix.  If the matrix had been
+configured as $N\times n$ and reduced by `rowMeans` then the
+results would not correspond to those from `replicate`.)
+
+### Reducing the array using `apply`
+
+The `colMeans` function is quite fast but only useful if you want the
+sample means from each of the subsamples.  If we wanted the sample
+median instead of the sample mean, we would be stuck.
+
+The `apply` function is a more general way of reducing an array
+because it takes the name of the R function to apply.  Of course, this
+means there will be repeated calls to the R function being applied,
+with the overhead of those calls, but that is the price to be paid for
+generality.  The call is of the form
+```{r resApply}
+    resApply <- apply(MM, 2, mean)
+    all.equal(resApply, resRepl)
+```
+
+The value 2 for the second argument indicates that the `mean` function
+should be applied to the 2nd dimension (i.e. the columns) of the
+array.
+
+To get a fair comparative timing we generate the random numbers within
+the call to `apply`
+```{r resApply2}
+    set.seed(123)
+    system.time(resApply <- apply(matrix(rexp(n * N), nr = n), 2, mean))
+```
+
+We can see that this method's speed is comparable to the `replicate`
+method.
+
+## Using `sapply` , `lapply` and `vapply`
+
+The `apply` function is one of a family of functions that apply other
+functions to the elements of some structure.  The most general of
+these is `lapply`, which applies a function to the elements of a list
+(or any other vector structure, including numeric vectors).
+
+A characteristic of `lapply` is that it always returns a list.  The
+`sapply` function is like `lapply` except that it tries to "simplify"
+the list that is returned.
+
+In our case we just want to repeat the operation of simulating `n`
+random values and determining their mean and do that `N` times so the
+function we want to apply doesn't use its argument.  Nevertheless, we
+must give it an argument, even though we don't use it, so that the
+`sapply` function stays happy.
+```{r sapply}
+    set.seed(123)
+    system.time(resSapply <- sapply(1:N, function(i) mean(rexp(n))))
+```
+
+An alternative is to `unlist` the result of `lapply`.
+```{r lapply}
+    set.seed(123)
+    str(unlist(lapply(1:N, function(i) mean(rexp(n)))))
+```
+\noindent for which the timing is
+```{r}
+    system.time(unlist(lapply(1:N, function(i) mean(rexp(n)))))
+```
+
+A slight variant on `sapply` is `vapply` which can be used if you know
+you will be creating a vector.  It takes a third argument which is a
+template vector that indicates the desired type of the response.   It
+doesn't need to be as large are the response, it just needs to be the
+right type of vector (technically, I should say "mode" instead of
+"type" but you get the idea).  Typical values are `1` for a numeric
+vector, `1L` for an integer vector, and the empty string, "", for
+character strings but more complex structures can be used.  See the
+examples in the help page `?vapply`
+```{r vapply}
+    set.seed(123)
+    str(vapply(1:N, function(i) mean(rexp(n)), 1))
+
+    system.time(vapply(1:N, function(i) mean(rexp(n)), 1))
+```
+
+Notice that the timings for the `sapply` and `lapply` methods are
+similar to those for `replicate`.  This is not a coincidence.  If 
+you examine the 
+[sources](https://github.com/wch/r-source/blob/trunk/src/library/base/R/replicate.R)
+for the`replicate` function you will see 
+ends up being a call to `sapply`.  There are a few subtleties in there
+about setting up the counter vector and changing the expression into
+an anonymous function but basically it comes down to a call to
+`sapply`.
+
+We won't bother discussing how the expression is converted to an
+anonymous function but it is interesting to consider why the number of
+replications, what we call `N` but is called `n` here, is converted to
+a vector of length `n` by `integer(n)`, whereas we used `1:N`.  The
+`integer(n)` call creates an integer vector of length `n` filled with
+zeros, whereas `1:N` creates an integer vector of length `N` counting
+from `1` to `N` --- most of the time.  Because we are not actually
+using the values it doesn't matter what the contents of the vector are
+as long as it has the correct length.
+
+As for that "most of the time" comment, the exception is when `n=0`.
+The construction `1:0` produces a vector of length 2 whereas
+`integer(0)` produces a vector of length 0.  It may seem bizarre to
+consider what the result should be when you replicate evaluation of an
+expression 0 times but the defensive programmer is always cautious of
+the "edge cases".  So the construction `1:n` is dangerous because it
+doesn't behave as expected when `n=0`.  If you want to get an integer
+vector containing the values from 1 up to `n` with correct behaviour
+for `n=0` use `seq_len(n)`
+
+# Benchmarking the speed of the methods<a id="sec-2"></a>
+
+We have used `system.time` to assess the execution time of a single
+evaluation of a sample by each of the proposed methods.  There are
+many different factors that can affect the overall execution time and
+we really should replicate the timings to get a better handle on the
+overall speed.  The `rbenchmark` package provides a versatile
+function, called `benchmark`, to replicate timings of expressions and
+create a table of results.
+
+First we load the package
+```{r librarybenchmark}
+    library(rbenchmark)
+```
+\noindent (if this produces an error you may need to install the package first).
+
+We should decide which methods we wish to compare and what size of
+samples to use.  The `replicate`, `sapply`, etc. methods have taken 3
+to 4 seconds for 100,000 realizations on this computer.  To have the
+benchmark test run in a reasonable length of time we will cut the
+number of realizations to 1000 and run 100 replications of each
+method.  As for the methods, we will eliminate the methods based on
+loops without preallocation of the results, as they are clearly not
+competitive.
+
+To make identification easier, we create functions for each of the
+simulation methods
+```{r}
+    fRepl <- function(n, N) replicate(N, mean(rexp(n)))
+    fLoopPre <- function(n, N) {
+        ans <- numeric(N)
+        for(i in seq_len(N)) ans[i] <- mean(rexp(n))
+        ans
+    }
+    fColMeans <- function(n, N) colMeans(matrix(rexp(n * N), nr=n))
+    fApply <- function(n, N) apply(matrix(rexp(n * N), nr=n), 2, mean)
+    fSapply <- function(n, N) sapply(integer(N), function(...) mean(rexp(n)))
+    fLapply <- function(n, N) unlist(lapply(integer(N), function(...) mean(rexp(n))))
+    fVapply <- function(n, N) vapply(integer(N), function(...) mean(rexp(n)), 1)
+    N <- 1000
+
+    benchmark(fColMeans(n,N),
+              fVapply(n, N),
+              fRepl(n, N),
+              fLoopPre(n, N),
+              fApply(n, N),
+              fSapply(n, N),
+              fLapply(n, N),
+              columns = c("test", "elapsed", "relative", "user.self", "sys.self"),
+              order = "elapsed")
+```
+
+We see that there is very little difference between the various
+looping or "apply"ing methods and, on this machine, the `colMeans`
+function is about 20 to 30 times faster than using a loop or an apply
+function.
+
+# Summary
+
+-   Using `replicate` for simulations is conceptually the simplest
+    approach and is competitive with other methods based on looping or
+    various functions from the `apply` family.
+-   For the particular case of evaluating sample means, the `colMeans`
+    function can be an order of magnitude faster.  It is worth
+    remembering for that one special, but frequent, case.
+-   Using `for` loops is not, by itself, a bad practice.  But you should
+    avoid "growing", within the loop, the object containing the
+    result.
+
+-   I couldn't resist showing results (done on the same machine) from Julia
+
+```julia
+julia> using Distributions
+
+julia> n = 9; N = 100_000;
+
+julia> meanexp(rate::Real,n::Integer) = mean(rand(Exponential(rate),n))
+meanexp (generic function with 1 method)
+
+julia> fcomp(n,N) = [meanexp(1.,n) for _ in 1:N]
+fcomp (generic function with 1 method)
+
+julia> srand(1234321)  # set the random number seed
+
+julia> rescomp = fcomp(9,100000)'
+1x100000 Array{Float64,2}:
+ 1.16292  1.83076  1.35633  1.11058  …  1.34078  1.57631  0.95815  0.598523
+
+julia> @time fcomp(9,100000);
+elapsed time: 0.023917699 seconds (13600128 bytes allocated)
+
+julia> srand(1234321)
+
+julia> fmat(n,N) = vec(mean(rand(Exponential(),(n,N)),1))
+fmat (generic function with 1 method)
+
+julia> srand(1234321)
+
+julia> resmat = fmat(9,100000)'
+1x100000 Array{Float64,2}:
+ 1.16292  1.83076  1.35633  1.11058  …  1.34078  1.57631  0.95815  0.598523
+
+julia> gc()
+
+julia> @time fmat(9,100000);
+elapsed time: 0.029193483 seconds (8000792 bytes allocated)
+
+```
