@@ -1,0 +1,139 @@
+---
+title: "Plotting pmf's and probability densities"
+author: "Douglas Bates"
+date: "11/12/2014"
+output:
+  ioslides_presentation:
+    keep_md: false
+    smaller: yes
+    widescreen: yes
+---
+```{r preliminaries,echo=FALSE,results='hide',cache=FALSE}
+library(knitr)
+library(ggplot2)
+library(reshape2)
+opts_chunk$set(fig.align='center',cache=TRUE)
+```
+
+
+# Plotting pmf's
+## Use of factors in ggplot2
+- We usually plot the probability density function for a continuous
+  distribution as a curve or overlaid curves for multiple densities
+- A probability mass function for a discrete distibution is usually
+  plotted as vertical bars.  This makes showing the pmf for multiple
+  distributions a bit more challenging.
+- In `qplot` we change from a curve to bars with
+  `geom="bar"` *and* changing the x values to a factor.
+- The plot on the next slide is for a binomial distribution with
+  $n=20$ and $p=0.5$.  It is produced by
+
+```{r bin2005show,eval=FALSE}
+library(qqplot2)
+xvals <- 0:20          # integer sequence from 0 to 20
+qplot(factor(xvals), dbinom(xvals, size=20, prob=0.5), geom="bar", stat="identity", ylab="p(k)", xlab="k")
+```
+
+## Pmf of Binomial, n = 20, p = 0.5
+
+```{r bin2005,fig.align='center',echo=FALSE}
+xvals <- 0:20
+qplot(factor(xvals), dbinom(xvals, size=20, prob=0.5), geom="bar", ylab="p(k)", xlab="k", stat="identity")
+```
+
+## Use of xlim to limit the values on the x axis
+- Often the pmf will be negligible over some of the possible values of $k$
+- If we see that the probability mass is highly concentrated then we
+  may wish to restrict the range of x values
+- Code for the next two figures is
+```{r bin10005show,eval=FALSE}
+xvals <- 0:100
+p <- qplot(factor(xvals), dbinom(xvals, size=100, prob=0.5), geom="bar", ylab="p(k)", xlab="k", stat="identity")
+xvr <- 50+ (-15:15)  # to get a centered range
+qplot(factor(xvr), dbinom(xvr, size=100, prob=0.5), geom="bar", ylab="p(k)", xlab="k", stat="identity")
+```
+
+## Pmf of Binomial, n = 100, p = 0.5
+```{r bin10005,fig.align='center',echo=FALSE}
+xvals <- 0:100
+(p <- qplot(factor(xvals), dbinom(xvals, size=100, prob=0.5), geom="bar", ylab="p(k)", xlab="k", stat="identity"))
+```
+
+## Pmf of Binomial, n = 100, p = 0.5, restricted width
+```{r bin10005r,fig.align='center',echo=FALSE}
+xvr <- 50+ (-15:15)  # to get a centered range
+qplot(factor(xvr), dbinom(xvr, size=100, prob=0.5), geom="bar", ylab="p(k)", xlab="k", stat="identity")
+```
+
+## Overlaying pmf's
+- It is more difficult to overlay probability mass functions, plotted
+  as bars, than to overlay probability density functions, plotted as
+  curves.
+- You need to specify the position adjustment so that multiple bars
+  are visible
+- As for the pdf's, you can create multiple evaluations of probability
+  functions and melt them to a long shape.
+```{r overlayshow,eval=FALSE}
+xvals <- 0:20
+fr <- melt(variable.name="p", id.vars="k",
+           data.frame(k=factor(xvals), 
+                      p1=dbinom(xvals,20,0.1),
+                      p5=dbinom(xvals,20,0.5), 
+                      p9=dbinom(xvals,20,0.9)))
+levels(fr$p) <- as.character(c(0.1,0.5,0.9))
+(p <- qplot(factor(k), value, data=fr, geom="bar", ylab="p(k)", fill=p, stat="identity"))
+```
+
+
+## Straight overlay
+```{r binoverlay,fig.align='center',echo=FALSE}
+xvals <- 0:20
+fr <- melt(variable.name="p", id.vars="k",
+           data.frame(k=factor(xvals), 
+                      p1=dbinom(xvals,20,0.1),
+                      p5=dbinom(xvals,20,0.5), 
+                      p9=dbinom(xvals,20,0.9)))
+levels(fr$p) <- as.character(c(0.1,0.5,0.9))
+(p <- qplot(factor(k), value, data=fr, geom="bar", ylab="p(k)", fill=p, stat="identity"))
+```
+
+## Dodge position
+```{r bindodge,fig.align='center',echo=FALSE}
+qplot(factor(k), value, data=fr, geom="bar",ylab="p(k)", fill=p, position="dodge",stat="identity")
+```
+
+# Evaluating and plotting densities
+
+## Functions to evaluate densities<a id="sec-1-1"></a>
+
+-   Functions to evaluate probability densities in R have names of the
+    form `d<dabb>` where `dabb` is the abbreviated distribution name.  For
+    example, `norm` for the normal (or Gaussian) density, `unif` for the
+    uniform density, `exp` for the exponential density.  A more complete
+    list of distributions and their abbreviations is given 
+    [here](http://blog.revolutionanalytics.com/2010/08/distributions-in-r.html).
+
+-   One simple way of plotting a theoretical density function is to
+    establish a range of x values, evaluate the density (or probability
+    mass function) on these values and plot the result.
+
+## Determining the range of x values
+
+-   It is not always straightforward to decide what a reasonable range of
+    x values would be.  For example, if I want to plot the exponential
+    density for the rate, $\lambda=0.2$, how far out on the right-hand tail
+    should I go?  One way to answer this is to find, say, the 0.995
+    quantile.
+```{r expmax}
+(xmax <- qexp(0.995, rate=0.2))
+```
+    and choose equally spaced values from 0, below which the density is zero, to `xmax`
+```{r xvals}
+xvals <- seq(0, xmax, length=100)
+```
+
+
+## Creating a plot
+```{r densplot,fig.align='center'}
+qplot(xvals, dexp(xvals, rate=0.2), geom="line", ylab="density", xlab="x")
+```

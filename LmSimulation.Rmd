@@ -1,0 +1,89 @@
+---
+title: "Simulating linear model fits"
+author: "Douglas Bates"
+date: "11/12/2014"
+output: 
+  pdf_document:
+    fig_caption: yes
+    keep_tex: yes
+    latex_engine: lualatex
+    number_sections: yes
+    toc: yes
+---
+```{r preliminaries,echo=FALSE,results='hide'}
+library(knitr)
+library(ggplot2)
+opts_chunk$set(fig.align='center',fig.pos="tb",cache=TRUE)
+```
+
+# Simulating linear model fits
+
+In a model-fitting function, such as `lm` or `glm`, a large proportion
+of the execution time can be spent on decoding and checking the
+argument values, creating the model frame (function `model.frame`) and
+the model matrix (function `model.matrix`) and preparing the arguments
+for the numerical operations, which are performed in `lm.fit` or
+`glm.fit`. 
+
+This is fine when we are fitting a single model or performing model
+building.  The time we should spend thinking about the model fits
+dwarfs the time spent fitting the model, in most cases.
+
+However, when we are going to perform a simulation, we don't want to
+perform all these operations of setting up the model when we are
+fitting the same model to tens of thousands of simulated response
+vectors in a simulation study.
+
+## Fitting a matrix of responses
+
+Fortunately there is a very fast, but little known, way of fitting a
+large number of simulated responses to the same model.  If you read
+the documentation for the `lm` function you will find that the
+response part of the formula can be a matrix with n rows and N
+columns.  That is, you can fit all the simulated responses in a single
+call to `lm`
+```{r bigMod}
+set.seed(1234321)            # ensure a reproducible stream
+N <- 10000                   # number of replications
+n <- 22                      # size of the sample
+dat <- data.frame(x=1:n)     # x values for a simple linear regression
+(betaTrue <- c(0, 4) + rnorm(2, sd = 0.1))
+
+muTrue <- as.vector(model.matrix(~ x, dat) %*% betaTrue)
+str(Ymat <- matrix(rnorm(n*N, mean=0, sd=0.3), nr = n) + muTrue)
+system.time(bigMod <- lm(Ymat ~ x, dat))
+```
+
+As you can see, this is very fast -- less than 1 second which is much,
+much faster than any kind of looping or apply function could achieve.
+
+The usual extractors applied to such model fits produce vectors or
+matrices.
+```{r coefbigmod}
+str(cc <- coef(bigMod))
+```
+
+To plot the distribution of the coefficient estimates we create a data
+frame of the transpose of this matrix.
+```{r}
+coefFr <- as.data.frame(t(cc))
+names(coefFr) <- c("Intercept", "slope")
+```
+```{r beta0dens,echo=FALSE,fig.cap="Empirical density plot of intercept coefficient from 10,000 simulations of a simple linear regression"}
+qplot(Intercept, data=coefFr, geom="density", xlab=expression(hat(beta)[0]))
+```
+```{r beta1dens,echo=FALSE,fig.cap="Empirical density plot of intercept coefficient from 10,000 simulations of a simple linear regression"}
+qplot(slope, data=coefFr, geom="density", xlab=expression(hat(beta)[1]))
+```
+
+
+In a scatter plot of a large number of points such as we have here, we sometimes
+get a better impression of the density of the points by using "alpha
+blending".  We set the parameter `alpha` to a value between 0 and 1 so
+the points are partially transparent.  (There is a reason we give the value of
+`alpha` as a quoted string.  Try without the quotes to see the difference.)
+
+```{r alphaplot,fig.cap="Scatterplot of estimated coefficients from 10,000 simulations of a simple linear regression"}
+qplot(Intercept, slope, data=coefFr, alpha="0.2",
+      xlab=expression(hat(beta)[0]),ylab=expression(hat(beta)[1]))
+```

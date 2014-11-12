@@ -1,0 +1,406 @@
+---
+title: "Simulation Studies with R"
+author: "Douglas Bates"
+date: "11/12/2014"
+output:
+  pdf_document:
+    fig_caption: yes
+    keep_tex: yes
+    latex_engine: lualatex
+    number_sections: yes
+    toc: yes
+---
+```{r preliminaries,echo=FALSE,results='hide'}
+library(knitr)
+library(ggplot2)
+opts_chunk$set(fig.align='center',fig.pos="tb",cache=TRUE)
+```
+
+Simulation studies using `R`
+============================
+
+## Simulation studies 
+
+One of the great advantages of having statistical software like `R`
+available, even for a course in statistical theory, is the ability to
+simulate samples from various probability distributions and
+statistical models.
+
+This area is worth studying when learning R programming because
+simulations can be computationally intensive making it worthwhile
+learning effective programming techniques.
+
+We begin with some background on `R` functions associated with distributions.
+
+## R functions associated with probability distributions 
+
+A simulation study typically begins with a probability model for the
+data and simulation of responses from this model.
+For [several common probability distributions](http://blog.revolutionanalytics.com/2010/08/distributions-in-r.html)
+`R` provides a set of functions, sometimes called a `d-p-q-r` family,
+to evaluate the probability density function (for continuous distributions,
+the probability mass function for discrete distributions),
+the cumulative distribution function or the quantile function
+(inverse of the c.d.f) and for simulation of a random sample.
+
+As shown in the 
+[table](http://blog.revolutionanalytics.com/2010/08/distributions-in-r.html)
+the names of the functions are composed of the initial letter indicating
+
+* `d`: density function (or probability mass function)
+* `p`: (cumulative) probability function (values are always in the
+       interval [0,1])
+* `q`: quantile function - the inverse (more-or-less) of the *p*
+       function
+* `r`: simulation of a random sample from the distribution
+and an abbreviation of the distribution name, as shown in the table
+referenced above, which also states the parameter names used for the distribution.
+
+
+### Common distributions 
+
+Common continuous distributions include
+
+* [Exponential](http://en.wikipedia.org/wiki/Exponential_distribution): 
+    [`exp`](http://www.inside-r.org/r-doc/stats/rexp) The parameter is
+    `rate` (defaults to `1`).  The mean of the distribution is `1/rate`.
+* [Normal](http://en.wikipedia.org/wiki/Normal_distribution )(or Gaussian):
+    [`norm`](http://www.inside-r.org/r-doc/stats/rnorm) The most famous
+    distribution in statistics, this is the well-known _bell-curve_.
+    Parameters of the distribution are `mean` (defaults to `0`) and `sd`
+    (defaults to `1`).
+* [Uniform](http://en.wikipedia.org/wiki/Uniform_distribution_%28continuous%29):
+    [`unif`](http://www.inside-r.org/r-doc/stats/runif) Parameters are
+    `min` (defaults to `0`) and `max` (defaults to `1`).
+
+Common discrete distributions include 
+
+* [Binomial](http://en.wikipedia.org/wiki/Binomial_distribution): 
+    [`binom`](http://www.inside-r.org/r-doc/stats/rbinom) Parameters are
+    `size`, the number of trials, and `prob`, the probability of success
+     on a single trial (no defaults). 
+* [Geometric](http://en.wikipedia.org/wiki/Geometric-distribution):
+    [`geom`](http://www.inside-r.org/r-doc/stats/rgeom) Parameter is `prob`,
+    the probability of success on each independent trial.
+    Note that the distribution is defined in terms of the number of failures
+    **before** the first success.
+* [Poisson](http://en.wikipedia.org/wiki/Poisson_distribution):
+    [`pois`](http://www.inside-r.org/r-doc/stats/rpois) The parameter is `lambda`,
+    the mean.
+
+### Less common and derived distributions 
+
+Less common continuous distributions include
+
+* [Beta](http://en.wikipedia.org/wiki/Beta_distribution): 
+    [beta](http://www.inside-r.org/r-doc/stats/rbeta) Parameters are `shape1`
+     and `shape2` (without defaults) and `ncp`, the non-centrality parameter, 
+     with a default of `0`, corresponding to the central beta.
+* [Cauchy](http://en.wikipedia.org/wiki/Cauchy_distribution):
+    [`cauchy`](http://www.inside-r.org/r-doc/stats/rcauchy) Parameters are
+    `location` (defaults to `0`) and `scale` (defaults to `1`).
+* [Gamma](http://en.wikipedia.org/wiki/Gamma_distribution): 
+    [`gamma`](http://www.inside-r.org/r-doc/stats/rgamma) Parameters are 
+    `shape` and one of `rate` or `scale`.
+    The last two parameters are inverses of one another and both default to `1`.
+* [Logistic](http://en.wikipedia.org/wiki/Logistic_distribution): 
+    [`logis`](http://www.inside-r.org/r-doc/stats/rlogis) Parameters are
+    `location` and `scale`.
+* [Log-normal](http://en.wikipedia.org/wiki/Log-normal_distribution):
+    [`lnorm`](http://www.inside-r.org/r-doc/stats/rlnorm) Parameters are
+    `meanlog` and `sdlog`.
+* [Weibull](http://en.wikipedia.org/wiki/Weibull_distribution):
+    [`weibull`](http://www.inside-r.org/r-doc/stats/rweibull) Parameters are
+    `shape` and `scale`.
+
+Continuous distributions describing sample statistics from a Gaussian
+population include
+
+* [Chi-square](http://en.wikipedia.org/wiki/Chi-square_distribution):
+    [`chisq`](http://www.inside-r.org/r-doc/stats/rchisq) Parameters are
+    `df` and `ncp`, the non-centrality parameter, which defaults to `0`.
+* [F](http://en.wikipedia.org/wiki/F-distribution):
+    [`f`](http://www.inside-r.org/r-doc/stats/rf) Parameters are `df1` and 
+    `df2`, the numerator and denominator degrees of freedom.
+    An optional parameter is `ncp`, the non-centrality parameter.
+    If omitted a central F distribution is assumed.
+* [t](http://en.wikipedia.org/wiki/T-distribution): 
+    [`t`](http://www.inside-r.org/r-doc/stats/rf)
+    Parameters are `df` and `ncp`, the non-centrality parameter.
+    If omitted a central t distribution is assumed.
+
+Less common discete distributions include
+
+* [hypergeometric](http://en.wikipedia.org/wiki/Hypergeometric_distribution):
+    [`hyper`](http://www.inside-r.org/r-doc/stats/rhyper)
+
+* [negative binomial](http://en.wikipedia.org/wiki/Negative_binomial_distribution):
+    [`nbinom`](http://www.inside-r.org/r-doc/stats/rhyper).
+
+## Reproducibility of "random" samples 
+
+Although the "random" numbers generated by the `r<dabb>` functions
+appear to be random they are, in fact, calculated according to
+systematic algorithms.
+We say they are _pseudo-random_ numbers.
+For all intents and purposes they seem to be random (and there are
+extensive checks performed on the generators to ensure that they do
+have the properties we would expect for a random sample) but they are
+reproducible, if we so choose.
+
+### Setting the seed for the pseudo-random number generator 
+
+The random number stream depends on a _seed_ value.
+If we want to produce a reproducible example (so, for example, we can
+discuss properties of a particular sample and the reader can generate the same
+sample for herself so she can examine it) then we set the seed to a
+known value before generating the sample.  The stored seed is a
+complicated structure but we can set it to an integer, often something
+trivial like
+```{r setseed1}
+  set.seed(1)                             # Ensure a reproducible stream
+```
+
+
+If we simulate a sample,
+```{r rnorm1}
+  (s1 <- rnorm(5))
+```
+then similate a second sample
+```{r rnorm2}
+  (s2 <- rnorm(5))
+```
+we get different values.
+However, if we reset the seed to 1 and *then* simulate the second sample
+we reproduce the original values.
+```{r setseed2}
+  set.seed(1)
+  (s2 <- rnorm(5))
+```
+
+We can see from the output that the printed values of the two samples
+are similar.  However, the printed values are rounded.  A more
+reliable check is
+```{r}
+all.equal(s1, s2)
+```
+
+## A first use of simulation - verifying theoretical properties 
+
+With resources like [Wikipedia](http://en.wikipedia.org) we now have
+effectively instant access to many of the theoretical results about
+distributions that, in the past, many of us needed to memorize.
+Nevertheless, it is still a good idea every once in a while to
+validate expressions for, say, the mean, the variance (or standard
+deviation), the median, etc. of a distribution.
+
+### Comparing sample statistics to theoretical values 
+
+The theoretical expected value and variance of a distribution are
+defined in terms of the parameters.
+Sometimes the definitions are simple and easy to remember; other times they aren't.
+A simple way to examine how, say, the expected value depends on the
+parameter is to simulate a very large sample from the distribution
+and evaluate the sample mean.
+
+Recall that the parameter `rate` in the `R` __d-p-q-r__ functions for the
+exponential distribution is the inverse of the expected value.
+We would anticipate that the sample mean for a large sample will be very
+close to the theoretical mean, `1/rate`.
+```{r meanexp1}
+  mean(rexp(1e6, rate = 1))
+  mean(rexp(1e6, rate = 0.5))
+  mean(rexp(1e6, rate = 2))
+```
+So the theoretical value of `1/rate` seems to hold.
+
+What about the variance or the standard deviation?
+I can remember that one of them is also 1/rate but sometimes I forget
+which one.
+```{r varexp}
+ var(rexp(1e6, rate = 1))
+ var(rexp(1e6, rate = 0.5))
+ var(rexp(1e6, rate = 2))
+```
+So it looks as if the variance is `1/rate^2` which would mean that it is
+the standard deviation that is `1/rate`.
+
+## Exercises 
+
+  1. Evaluate the sample mean, variance and standard deviation of one
+     or more large samples from the _Geometric_
+     distribution for different values of `prob` (remember that this
+     parameter represents a probability and must be between 0 and 1).
+     Look at the Wikipedia description for the
+     [Geometric](http://en.wikipedia.org/wiki/Geometric-distribution)
+     distribution, which describes two ways of writing the
+     distribution 
+        a. the number of failures *before* the first success
+        b. the number of trials *until* the first success
+     Which version is implemented in `R`?
+  
+  2. Evaluate the sample mean, variance and standard deviation of one
+     or more large samples from the
+     [Uniform](http://en.wikipedia.org/wiki/Uniform_distribution_%28continuous%29)
+     distribution for different values of the parameters `min` and
+     `max`. 
+     How does the variance related to `min` and `max`.
+  
+  3. Evaluate the sample mean, variance and standard deviation of one or
+     more large samples from the 
+     [Binomial] distribution for different values
+     values of the parameters `size` and `prob`.  Compare these to the
+     theoretical values.
+
+### What is a "large" sample? 
+
+We use a large sample size (the notation `1e6` indicates $10^6$ which
+is one million) so that the sample statistic will be very close to its
+theoretical value based on the parameter values.  
+
+Because larger sample sizes lead to less variability in the sample
+statistics, we try to balance the compute time versus accuracy.
+
+
+## Simulation of sample statistics 
+
+A more common use of simulation is to assess the _distribution_ of a
+_sample statistic_ for a sample from a particular probability
+distribution.  
+Just about every introductory text book shows simulations of the
+distribution of the mean from i.i.d. samples of different probability
+distributions when the [Central Limit
+Theorem](http://en.wikipedia.org/wiki/Central_Limit_Theorem) is
+introduced.
+
+It is important here to distinguish between `n`, the size of the sample
+being considered, and `N`, the number of replications of the value of
+the statistic to be simulated.
+In practice `n` is small, often less than 100, and `N` is large,
+on the order of hundreds of thousands or more.
+The interest is in the properties of statistics calculated from "real
+world" samples for which `n`, the sample size, may be moderate.
+We use a large number of replications, `N`, to get a realistic
+representation of the distribution, so that we can examine its
+empirical distribution expecting that it will be close to the
+theoretical distribution.
+
+### Simulation of the Central Limit Effect 
+
+We just saw that for an exponential distribution with parameter `rate`
+the mean is 1/rate and the standard deviation is also 1/rate.  The
+shape of the distribution is, of course, the negative exponential
+shape.
+
+The Central Limit Theorem states that for the distribution of the
+sample mean of i.i.d. samples of size `n` from a distribution with mean 
+$\mu$ and standard deviation $\sigma$ will have mean $\mu$ and standard deviation
+$\sigma/sqrt(n)% and, furthermore, the shape of the distribution will
+tend to a normal or Gaussian shape as `n` gets large.
+But the result on the shape is an asymptotic result (i.e. as `n` gets
+large).
+Can we count on it holding for moderate values of `n`?
+
+Our steps in such a simulation are:
+
+1. Choose the values on n that we wish to examine.  Because of the
+    factor of `sqrt(n)` in the denominator of the standard deviation
+    of the sample mean, we may want to use numbers that are squares,
+    such as 1, 4, 9, 16, 25, 36, 49.
+
+2. Choose a value of `N`, the number of replications.  I would
+    recommend at least $10^5$ and perhaps as much as $10^6$.
+    The trade-offs are that a larger value allows you to get a
+    smoother approximation to the density and more precise
+    approximations to the theoretical quantities but large values of N
+    take longer.
+    Start with a moderately large value and, if your computer can
+    handle that quickly, then scale up until it seems to be taking too
+    long.
+
+3. Choose the distribution and parameter values and the statistic of
+   interest.  For our simulation we will use the exponential (=rexp=)
+   and the default value of the parameter `rate`.  We use the function
+   `mean` to evaluate the sample mean.
+
+### Automatic replication of a calculation 
+
+If we want just one value of the sample mean from an i.i.d. sample of
+size `n = 9` we could use
+```{r meanrexp}
+  mean(rexp(9, rate = 1))
+```
+but now we want to repeat that operation `N` times and save the
+resulting values for later analysis.
+
+Because `R` is a programming language we can use some of the control
+structures to accomplish this.
+Neophyte `R` programmers often do this
+in a `for` loop but you have to be careful exactly how you set up the
+loop if you want to do this effectively.  
+
+Fortunately, there is an alternative to the `for` loop.
+The `replicate` function in R is a convenient way of repeating a
+calculation, usually involving a simulation, and collecting the
+results.
+```{r meanrexpdist}
+  str(mns9 <- replicate(10^5, mean(rexp(9, rate = 1))))
+```
+
+### Examining the sample of realizations of the test statistic 
+
+So now we have generated a sample of size 100,000 of means of samples
+of size 9 from the standard exponential distribution.
+
+We expect
+```{r samplemean1}
+  mean(mns9)
+```
+to be close to `1` and
+```{r samplesd1}
+  sd(mns9)
+```
+to be close to `1/3`.
+
+To examine the shape of the distribution we can use an empirical
+density plot (Figure \ref{fig:empiricaldens})
+```{r empiricaldens,echo=FALSE,fig.cap="Empirical density plot of 100,000 means of samples of size 9 from an exponential distribution with rate = 1"}
+qplot(mns9, geom="density", xlab="Means of samples of size 9 from an exponential dist.")
+```
+or a normal probability plot, also called a `qq` or quantile-quantile
+plot (Figure \ref{fig:qqsample})
+```{r qqsample,echo=FALSE,fig.cap="Normal quantile-quantile plot of 100,000 means of samples of size 9 from an exponential distribution with rate = 1",fig.width=4.5,fig.height=4.5}
+qplot(sample = mns9, main="Means of samples of size 9 from an exponential dist.")
+```
+
+That last plot takes a long time to produce because there are so many
+points to plot.  There are techniques, to be discussed later, to thin
+the plot and avoid plotting so many points.
+
+## Summary 
+
+- R functions for producing a random sample from a particular
+    distribution have names of the form `r<dabb>` where `dabb` is an
+    abbreviated for of the distribution name.
+
+- For a large sample the values of sample statistics, such as `mean`,
+    `var`, `sd`, `median`, etc. should be close to the theoretical
+    values determined by the model parameters.
+
+- We also use simulation to approximate the distribution of sample
+    statistics calculated from small-sized samples.  To evaluate the
+    distribution we *replicate* the operation of selecting the sample
+    and evaluating the sample statistic.  The number of replicates, N,
+    is as large as feasible.  The larger N is, the better we
+    approximate the distribution but it also can take much longer to
+    run.  The sample size, n, is often small.
+
+- An idiom to remember where `statFun` is the function to calculate the sample statistic
+    (`mean`, `median`, etc.), `<dabb>` is the abbreviated name of the
+    distribution and `<par values>` are values of the parameters of
+    the distribution is
+
+```{r idiom,eval=FALSE}
+    statSamp <- replicate(N, <statFun>(r<dabb>(n, <par values>)))
+```
+

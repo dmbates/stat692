@@ -1,0 +1,52 @@
+---
+title: "Plotting Densities"
+author: "Douglas Bates"
+date: "2014-11-12"
+output:
+  ioslides_presentation:
+    fig_caption: yes
+    fig_retina: null
+    keep_md: yes
+    smaller: yes
+    widescreen: yes
+---
+```{r preliminaries,echo=FALSE,results='hide'}
+library(ggplot2)
+options(show.signif.stars=FALSE)
+```
+
+# Evaluating densities<a id="sec-1"></a>
+
+## Functions to evaluate densities<a id="sec-1-1"></a>
+
+-   Functions to evaluate probability densities in R have names of the
+    form `d<dabb>` where `dabb` is the abbreviated distribution name.  For
+    example, `norm` for the normal (or Gaussian) density, `unif` for the
+    uniform density, `exp` for the exponential density.  A more complete
+    list of distributions and their abbreviations is given 
+    [here](http://blog.revolutionanalytics.com/2010/08/distributions-in-r.html).
+
+-   One simple way of plotting a theoretical density function is to
+    establish a range of x values, evaluate the density (or probability
+    mass function) on these values and plot the result.
+
+## Determining the range of x values<a id="sec-1-2"></a>
+
+-   It is not always straightforward to decide what a reasonable range of
+    x values would be.  For example, if I want to plot the exponential
+    density for the rate, $\lambda=0.2$, how far out on the right-hand tail
+    should I go?  One way to answer this is to find, say, the 0.995
+    quantile.
+```{r expmax}
+(xmax <- qexp(0.995, rate=0.2))
+```
+    and choose equally spaced values from 0, below which the density is zero, to `xmax`
+```{r xvals}
+xvals <- seq(0, xmax, length=100)
+```
+
+
+## Creating a plot<a id="sec-1-3"></a>
+```{r densplot,fig.align='center'}
+qplot(xvals, dexp(xvals, rate=0.2), geom="line", ylab="density", xlab="x")
+```
