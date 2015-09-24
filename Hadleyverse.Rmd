@@ -1,0 +1,50 @@
+---
+title: "Introduction to the Hadleyverse"
+author: "Douglas Bates"
+date: "September 24, 2015"
+output: 
+  ioslides_presentation:
+    fig_caption: yes
+    fig_retina: null
+    keep_md: yes
+    smaller: yes
+    widescreen: yes
+---
+```{r preliminaries,echo=FALSE,results='hide',cache=FALSE}
+suppressPackageStartupMessages(library(readr))
+suppressPackageStartupMessages(library(dplyr))
+options(width=102)
+```
+
+## RStudio and Hadley Wickham
+
+- The biggest changes in the __R__ environment over the last 10 years have come from [Rstudio](http://rstudio.com)
+  and its chief scientist [Hadley Wickham](https://github.com/hadley)
+
+- Hadley did his Ph.D. at Iowa State, during which he developed the [ggplot2](https://github.com/hadley/ggplot2) package implementing the "Grammar of Graphics"
+
+- He continues to be a driving force in innovation for the __R__ environment, to the extent that his collection of packages is known as the _Hadleyverse_
+
+- He was also an early adopter of [github](https://github.com) and through its integration with RStudio encouraged its use with __R__
+
+- The packages he has written are characterized by composability
+    * [readr](http://github.com/hadley/readr) - replacements for data-reading functions suitable for use with 
+    * [dplyr](https://github.com/hadley/dplyr) - data manipulation, grouping and summaries
+    * [tidyr](https://github.com/hadley/tidyr) - transfer from `wide` to `long` format and vice-versa
+    * [rvest](https://github.com/hadley/rvest) - web-scraping in R
+    * [devtools](https://github.com/hadley/devtools) - utilities for building and maintaining __R__ packages
+
+## [readr](http://github.com/hadley/readr) and [dplyr](https://github.com/hadley/dplyr)
+
+Earlier we read the `classroom` data using
+```{r classroom,eval=FALSE}
+str(classroom <- read.csv("http://www-personal.umich.edu/~bwest/classroom.csv"))
+```
+The equivalent expression using  [readr](http://github.com/hadley/readr) is
+```{r classroomreadr}
+(classroom <- read_csv("http://www-personal.umich.edu/~bwest/classroom.csv"))
+```
+Note that `readr` function calls produce `dplyr` tables.
+
+
+
