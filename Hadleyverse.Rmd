@@ -13,7 +13,7 @@ output:
 ```{r preliminaries,echo=FALSE,results='hide',cache=FALSE}
 suppressPackageStartupMessages(library(readr))
 suppressPackageStartupMessages(library(dplyr))
-options(width=102)
+options(width=112)
 ```
 
 ## RStudio and Hadley Wickham
@@ -44,7 +44,86 @@ The equivalent expression using  [readr](http://github.com/hadley/readr) is
 ```{r classroomreadr}
 (classroom <- read_csv("http://www-personal.umich.edu/~bwest/classroom.csv"))
 ```
-Note that `readr` function calls produce `dplyr` tables.
+
+## Verbs and composition in readr
+
+- The philosophy of `readr` is to use a number of "verbs" to express operations on the data and chain calls together using "pipes"
+- The pipe operator is written `%>%`.  It takes the output of the operand on the left and uses it as the first argument to the operand on the right.  There is a keyboard shortcut (ctrl-shift-M) in RStudio
+- Various verbs applied to a single frame are:
+    * `select` - select a subset of the columns
+    * `filter` - select a subset of the rows
+    * `arrange` - re-order the rows
+    * `mutate` - add new variables
+    * `sunnarise` - reduce a group to a smaller number of observations
+    * `group_by` - create the groups
+
+## `mutate`
+
+- The equivalent of the `with` and `within` functions in base R is `mutate`
+- I prefer to have categorical data expressed as factors.  Some disagree, sometimes vehemently, because of the retaining unused levels behavior.  They would rather express categorical data as strings.  In either case, expressing categorical data as integers is asking for trouble.
+- to convert the categorical data we can use
+```{r mutate}
+(clf <- mutate(classroom,sex = factor(sex,labels=c('F','M')), minority = factor(minority,labels=c('N','Y')),
+               classid = factor(classid), schoolid = factor(schoolid), childid = NULL))
+```
+
+## Alternative
+```{r mutate2}
+(clc <- mutate(classroom, sex = ifelse(sex,'M','F'), minority = ifelse(minority,'Y','N'), childid = NULL))
+```
+
+- Neither of these alter the `classroom` table.
+
+## What's the difference?
+
+The difference between a factor and a character or integer variable is most important when subsetting, which is called `filter` in `dplyr`.
+```{r filter}
+girlsf <- filter(clf, sex == 'F')
+girlsc <- filter(clc, sex == 'F')
+xtabs(~sex, girlsf)
+xtabs(~sex, girlsc)
+```
+- the factor retains information about the original levels.  The character variable doesn't.
 
 
+## `select` and `filter`
+
+- The base `R` function `subset` allows for subsetting both rows and columns.  These operations are distinct in `dplyr`; `select` for rows and `filter` for columns
+
+```{r}
+classroom %>% 
+    select(schoolid,housepov) %>% 
+    distinct()
+```
+
+## split-apply-combine
+- A common idiom in data exploration is __split-apply-combine__ in which the data are split according to the levels of a variable, an operation is applied and the result is expressed in a new summary.
+- The `group_by` verb is valuable here
+```{r sac}
+sclcl <- classroom %>% group_by(schoolid) %>% select(classid) %>%  unique()
+xtabs(~schoolid,sclcl)
+tabulate(xtabs(~schoolid,sclcl))
+```
+
+## more split-apply-combine
+```{r sac1}
+classroom %>% group_by(classid) %>% summarise(mngain = mean(mathgain))
+```
+
+## "Data munging"
+
+- Experienced consultants often find that a substantial part of a project is taken up with "data munging" - getting the data into a usable form.
+
+- Extracting data from spreadsheets is often very difficult
+
+- A good place to start exploring data is in the data sets for our Master's exam, in `/afs/cs.wisc.edu/p/stat/Data/MS.exam/`
+
+- Try, for example, initial exploration of the data in `f14`.
+
+- I was unable to read the `LakeSuperior.txt` file with `read_tsv`.  I could use `read.delim` with `header=TRUE`
+
+- The results from `read_tsv` on `organoid.txt` look peculiar.
+```{r organoid}
+org <- read_tsv("/afs/cs.wisc.edu/p/stat/Data/MS.exam/f14/organoid.txt")
+```
 
