@@ -124,6 +124,6 @@ classroom %>% group_by(classid) %>% summarise(mngain = mean(mathgain))
 
 - The results from `read_tsv` on `organoid.txt` look peculiar.
 ```{r organoid}
-(org <- read_tsv("/afs/cs.wisc.edu/p/stat/Data/MS.exam/f14/organoid.txt"))
+(org <- read_tsv("/afs/cs.wisc.edu/p/stat/Data/MS.exam/f14/organoid.txt",skip=1))
 ```
 

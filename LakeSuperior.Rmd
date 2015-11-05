@@ -1,0 +1,67 @@
+---
+title: "Lake Superior water quality study"
+author: "Douglas Bates"
+date: "November 5, 2015"
+output: 
+  html_document: 
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+---
+# Introduction
+
+Those taking the Master's Exam in the Department of Statistics at the University of Wisconsin - Madison are provided with data and a problem description plus access to the client.  In the Fall 2014 exam one of the problems related to changes in characteristics of Lake Superior over time.  The description of the problem stated
+
+> The understanding the “health” of Wisconsin’s Great Lakes as well as other Great Lakes, has been receiving increasing attention.  Many of the currently existing indicators for ecosystem “health” in the Great Lakes are likely valid but are biologically, chemically, and physically compartmentalized (e.g. [16 indicators recommended to the International Joint Commission (IJC)](
+http://ijc.org/files/publications/Technical%20Report_Eco%20Indicators_2013.pdf). Certainly, these and other indicators reasonably reflect conditions and processes of interest to the Great Lakes community.  However, two important aspects are lacking.  First, as acknowledged by the IJC, there are no threshold levels recommended and the inherent variability of metrics of interest are often unknown.  Without an ecological tipping point/measure of societal acceptance/economic cost or benefit associated with each metric, it is difficult to measure its utility and current status.  Second, there is no relative weight to each of the indicators with regard to overall health.  Some indicators will undoubtedly reflect human induced changes, environmental variability, ecological stability, biodiversity, and societal values to a greater or lesser degree.  As such, an overarching analysis of available data to understand the dynamics and relative importance of measured variables and thereby develop an appropriate measure of overall health is of central importance.  
+
+> Water quality data for Lake Superior were obtained from the [Water Quality Portal](http://www.waterqualitydata.us) which houses a tremendous amount of data and is a central repository of data from numerous academic and governmental agencies within the Great Lakes Basin.  The data sets were cleaned to some extent with regard to selection of metrics of interest
+
+# Initial exploration
+
+The data are available as a tab-separated text file, `/afs/cs.wisc.edu/p/stat/Data/MS.Exam/f14/Lake_Superior_Data.txt`
+
+We begin by reading the file, using the `readr` package.
+```{r preliminaries,cache=FALSE}
+options(width=102)
+library(readr)
+suppressPackageStartupMessages(library(dplyr))
+```
+```{r superior,cache=TRUE}
+fnm <- "/afs/cs.wisc.edu/p/stat/Data/MS.exam/f14/Lake_Superior_Data.txt"
+superior <- read_delim(fnm,delim="\t")
+```
+
+This approach is unsuccessful because some of the values in the `Detectio_1` column are floating point numbers but they do not occur in the first 1000 rows.  The `read_delim` function scans only the first 1000 rows before deciding on the types in the columns.  We will fall back on the read.delim function and convert from the data frame.
+
+```{r superior2,cache=TRUE}
+(superior <- tbl_df(read.delim(fnm)))
+glimpse(superior)
+summary(superior)
+```
+
+We can see that, like many datasets derived from spreadsheets, these data are very messy.  All the rows have `Latitude`, `Longitude`, `Month`, `Day`, and `Year` recorded.  Many other columns are inconsistently recorded (units of `feet` and `ft` for `ActivityDepth`; `ResultTemp` of `20 Deg C` and `20 deg C`).  We may want to split according to `Characteri` to see if we can induce some consistency but first we should take care of the values coded as blanks and convert the information on dates to an `ISODate` object
+
+## Replace blank values by NA`s and converting Dates
+
+In a spreadsheet it makes sense to leave a value blank but really it indicates a missing value, or a case where the column is not meaningful. We see these in the columns `ActivityDe_Unit`,`ResultSamp`,`ResultTime`,`ResultTemp`,`DetectionQ`,`Detectio_2` and `Preparation`.
+
+We'll keep a backup in case things go south and create a small function to perform the change
+```{r NAsandDates}
+blank2NA <- function(x) {
+    if (is.factor(x) && '' %in% levels(x)) {
+        x[x == ''] <- NA
+        droplevels(x)
+    }
+    x
+}
+sup <- lapply(superior,blank2NA) %>% data.frame %>% tbl_df %>% mutate(Date = ISOdate(Year,Month,Day), OBJECTID = factor(OBJECTID))
+glimpse(sup)
+summary(sup)
+```
+
+# The Ecoli measurements
+
+```{r ecoli}
+summary(ecoli <- droplevels(filter(sup,MeasCommon == 'Ecoli')))
+```
