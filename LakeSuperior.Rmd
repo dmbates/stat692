@@ -26,6 +26,7 @@ We begin by reading the file, using the `readr` package.
 options(width=102)
 library(readr)
 suppressPackageStartupMessages(library(dplyr))
+library(ggplot2)
 ```
 ```{r superior,cache=TRUE}
 fnm <- "/afs/cs.wisc.edu/p/stat/Data/MS.exam/f14/Lake_Superior_Data.txt"
@@ -65,3 +66,66 @@ summary(sup)
 ```{r ecoli}
 summary(ecoli <- droplevels(filter(sup,MeasCommon == 'Ecoli')))
 ```
+
+The call to `droplevels` drops the unused levels in a factor.  This is why several of the columns, such as `Characteri`, `ResultSamp`, `MeasCommon` and`MeasureQua`, have only one level in the reduced frame.
+
+We see that the earliest measurements of E. Coli concentrations were made in April of 1984 and over 75% were made between 2005 and 2013.  It would be good to check on location as well.  First we give a reference map from  Wikipedia
+
+![Lake Superior](/home/bates/git/stat692/Lake_Superior_bathymetry_map.png)
+
+```{r location}
+locs <- unique(select(ecoli,LatitudeMe,LongitudeM))
+#alt locs <- ecoli %>% select(LatitudeME,LongitudeM) %>% unique
+nrow(locs)
+```
+```{r }
+p <- ggplot(locs,aes(x=LongitudeM,y=LatitudeMe)) + xlab("Longitude") + ylab("Latitude") + coord_fixed(ratio=1.5)
+p + geom_point()
+```
+
+The use of `coord_fixed` in the plot is to get the aspect ratio approximately the same as on the map.
+
+To start to look at time trends we want to find the most frequently occurring location.
+
+```{r ll}
+latlong <- with(ecoli,paste(LatitudeMe,LongitudeM,sep=":"))
+sort(xtabs(~latlong),decreasing=TRUE)
+```
+
+Notice that the four most frequently occurring locations are very close together, on the south shore.
+
+For the most frequently occurring location a plot of the time series is
+```{r pos1}
+pos1 <- ecoli %>% filter(LongitudeM==-87.3909,LatitudeMe==46.5291) %>% select(ResultMe_1,Date,MonitorLocID) %>% arrange(Date) %>% droplevels
+glimpse(pos1)
+summary(pos1)
+```
+Notice that `ResultMe_1` is a factor.  Convert it to numeric.
+```{r pos1Result}
+pos1$ResultMe_1 <- as.numeric(pos1$ResultMe_1)
+p2 <- ggplot(pos1,aes(x=Date,y=ResultMe_1)) + ylab("E. Coli concentration (cfu/100ml)")
+p2 + geom_point()
+```
+
+This plot over 13 years obscures the within-year pattern.  Consider just the data in 2013
+```{r pos1Result201314}
+(pos113 <- filter(pos1,Date > ISOdate(2013,01,01)))
+p3 <- ggplot(pos113,aes(x=Date,y=ResultMe_1))+ ylab("E. Coli concentration (cfu/100ml)")
+p3 + geom_point()
+```
+
+Here the mysterious result is that often results on the same day vary widely
+
+```{r ecoli20130603}
+Jun032013 <- droplevels(filter(ecoli,Date == ISOdate(2013,06,03))) %>% arrange(MonitorLocID)
+summary(Jun032013)
+glimpse(Jun032013)
+```
+
+# General approach
+
+We have been following the split-apply-combine approach although at this point all we have is the split part.  Even at a single location it is difficult to see the time trends in the E. Coli measurements.
+
+
+
+
