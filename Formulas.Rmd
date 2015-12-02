@@ -1,0 +1,257 @@
+---
+title: "Formulas"
+author: "Douglas Bates"
+date: "December 2, 2015"
+output:
+  ioslides_presentation:
+    fig_retina: null
+    widescreen: yes
+---
+```{r preliminaries,echo=FALSE,results='hide'}
+suppressPackageStartupMessages(library(ggplot2))
+options(show.signif.stars = FALSE,width=92)
+```
+
+
+# Formulas for linear models
+
+## Basic form
+- In __R__ linear models are specified using a _model formula_, which is an expression that contains a tilde (the `~` character).
+- The _response_ is on the left-hand side of `~`, typically as the name of a variable, e.g. `optden`, but it can also be a function call, e.g. `log(BrainWt)`.
+- The right-hand side of the formula is composed of _model terms_ separated by `+`.
+
+## Fitting linear models is not trivial
+- Although it may seem straightforward, fitting a linear model can be quite involved.
+- Complications arrive from
+    - missing data
+    - categorical covariates
+    - terms that are function calls
+    - several possible auxiliary arguments such as `subset`, `na.action`, `constrasts`, ...
+    - provision for analysis of variance and other testing procedures
+
+## Model frames and model matrices
+- Because the same issues are encountered in any statistical model that is based on a model matrix, there is a standard approach.
+    - Create a `model.frame` by examining the formula/data specification, applying a `subset` specification, handling `NAs`, evaluating function calls, re-ordering terms if necessary.
+    - Create a `model.matrix` and `model_response` from the model frame. Associate columns in the model matrix with terms in the model frame.
+- Note the use of the term "model matrix".  Sometimes $\bf X$ in $\bf X\beta$ is called a "design matrix" but that is a misnomer.
+
+## A simple example - Formaldehyde
+- The `Formaldehyde` data in the `datasets` package is from a calibration experiment in which the optical density in an assay is measure for various carbohydrate concentrations.
+
+```{r formaldehyde}
+str(Formaldehyde)
+```
+## Formaldehyde data plot
+```{r formplot,echo=FALSE}
+p <- ggplot(Formaldehyde,aes(x=carb,y=optden))+xlab("Carbohydrate concentration (ml)")+ylab("Optical density")
+p + geom_point()
+```
+
+## Fitting a simple linear regression model
+```{r formlm}
+summary(m1 <- lm(optden ~ 1 + carb, Formaldehyde))
+```
+
+## Extractor methods
+```{r classlm}
+class(m1)
+```
+- There are many extractor methods defined for this class.  Use `methods(class="lm")` to see them.
+
+## A model frame contains information on terms
+```{r modelframe1}
+str(model.frame(m1))
+```
+
+## Model matrix relates columns to terms
+```{r modelmatrix}
+model.matrix(m1)
+```
+
+## `lm` objects have many components
+
+```{r lmcomponents}
+str(m1)
+```
+
+## Other extractors
+- `model.response` goes through `model.frame`
+- `fitted` and `residuals` just extract components
+- the `qr` component provides a QR decompositon of $\bf X$
+- the `effects` component, $\bf Q'\bf y$, is used for analysis of variance, `anova`
+- many extractors such as `hatvalues`, `cooks.distance`, `dfbeta`, `dfbetas`, `rstandard`, `rstudent` and `kappa` are related to regression diagnostics.
+
+## Anova and effects
+
+```{r anovaandeffects}
+effects(m1)^2
+anova(m1)
+```
+
+# Formula examples
+
+## Covariate names in the examples
+- In the formulas below we write the response as `y`, continuous covariates as `x,z,u,...` and categorical covariates as `f` and `g`.  
+- Note that the categorical covariates are assumed to be stored as `factors`
+
+## Simple linear regression
+```{r results='hide'}
+y ~ x
+```
+denotes the simple linear regression model
+$$
+y_i = \beta_0+\beta_1 x_i + \epsilon_i, \quad i = 1,\dots,n
+$$
+
+- In this formula, the intercept term is implicit.  To make it explicit use
+```{r results='hide'}
+y ~ 1 + x
+```
+
+- For clarity I prefer to use the explicit form.  
+- We are still debating the formula terms for the __Julia__ language.  Right now the prevailing opinion is __not__ to assume an implicit intercept term.
+
+## Regression through the origin
+
+- To suppress an intercept term use
+```{r results='hide'}
+y ~ 0 + x
+```
+
+- An alternative formula is
+```{r results='hide'}
+y ~ x - 1
+```
+
+- Both of these generate the model
+$$
+y_i = \beta_1 x_i + \epsilon_i, \quad i = 1,\dots, n
+$$
+
+## Zero intercept for Formaldehyde?
+
+```{r formalzero}
+m2 <- lm(optden ~ 0 + carb, Formaldehyde)
+anova(m2,m1)
+coef(summary(m1))
+```
+
+
+## Multiple linear regression
+- Multiple covariate terms can be given, as in
+```{r results='hide'}
+y ~ 1 + x + z + sqrt(u)
+```
+corresponding to
+$$
+y_i = \beta_0 + \beta_i x_i+\beta_2 z_i+\beta_3 \sqrt{u_i}+\epsilon_i, \quad i=1,\dots,n
+$$
+
+## Polynomial regression
+- To include polynomial terms you must protect the `^` operator by wrapping it in `I()`.
+- That is, the model
+$$
+y_i=\beta_0+\beta_1 x_i+\beta_2 x_i^2 + \beta_3 x_i^3+\epsilon_i,\quad i=1,\dots,n
+$$
+is written
+```{r polyreg,results='hide'}
+y ~ 1 + x + I(x^2) + I(x^3)
+```
+
+## Orthogonal polynomial terms
+- Another specification for a polynomial regression model uses the `poly()` function which generates _orthogonal polynomial_ terms
+```{r polyfunc,results='hide'}
+y ~ poly(x, 3)
+```
+
+- The fitted responses will be the same from the model using `I(x^2)`, etc. but the coefficients will be different.
+- Orthogonal polynomials allow for backward elimination of higher order polynomial terms without refitting the model.  (Not a consideration these days)
+- Fitting high order polynomials is discouraged.  Smoothing approaches are preferred.
+
+## Quadratic for Formaldehyde?
+```{r quadform}
+m3 <- lm(optden ~ 1 + carb + I(carb^2), Formaldehyde)
+coef(summary(m3))
+m4 <- lm(optden ~ poly(carb,2), Formaldehyde)
+coef(summary(m4))
+```
+
+## A single categorical covariate
+
+- A one-way analysis of variance model for the levels of a factor, `f`, is written
+
+```{r one-way,results='hide'}
+y ~ 1 + f
+```
+
+- Often we use the function `aov()` to fit such a model instead of `lm()`.  The result is the same except for the class which changes the way that the fitted model is summarized.
+
+- The model being fit is sometimes written
+$$
+y_{ij}=\mu+\alpha_i+\epsilon_{ij},\quad i=1,\dots,I\;j=1,\dots,n_i
+$$
+although it is not fit in that form.
+
+## InsectSprays
+
+```{r insectsprays}
+str(InsectSprays)
+```
+```{r insectspraysplot1,echo=FALSE,fig.height=3}
+p <- ggplot(InsectSprays,aes(x=spray,y=count)) + xlab("Spray") + ylab("Insect count")
+p + geom_point() + geom_jitter() + coord_flip()
+```
+
+## More `InsectSprays` plots
+
+```{r insectspraysplot2,echo=FALSE,fig.height=1.75}
+p <- ggplot(InsectSprays,aes(x=reorder(spray,count),y=count)) + xlab("Spray") + ylab(NULL)
+p + geom_point() + geom_jitter() + coord_flip()
+```
+```{r insectspraysplot3,echo=FALSE,fig.height=1.75}
+p + geom_point() + geom_jitter() + scale_y_sqrt()  + coord_flip()
+```
+```{r insectspraysplot4,echo=FALSE,fig.height=1.75}
+p + stat_boxplot() + scale_y_sqrt()  + coord_flip()
+```
+
+## `InsectSprays` fit
+```{r m5}
+summary(m5 <- aov(sqrt(count) ~ 1 + spray, InsectSprays))
+effects(m5)[1:6]^2
+c(sum(effects(m5)[2:6]^2), sum(effects(m5)[-(1:6)]^2))
+```
+
+## Contrasts and model matrices
+
+```{r m5mmat}
+unique(model.matrix(m5))
+contrasts(InsectSprays$spray)
+```
+
+## Terms in `m5`
+```{r m5terms}
+terms(m5)
+```
+
+## Two categorical factors
+- The _additive_ model is specified as
+```{r results='hide'}
+y ~ 1 + f + g
+```
+- The analysis of variance for a model with multiple categorical covariates is the _sequential_ anova.
+- For unbalanced data the F statistics for `f` and `g` change if you specify the model as `y ~ 1 + g + f`
+- The two-factor model with interactions is
+```{r results='hide'}
+y ~ 1 + f + g + f:g
+```
+or, equivalently,
+```{r results='hide'}
+y ~ 1 + f * g
+```
+
+## Examples of additive models
+```{r diamonds}
+summary(m6 <- aov(price ~ 1 + carat + cut + color, diamonds))
+summary(m7 <- aov(price ~ 1 + carat + color + cut, diamonds))
+```
