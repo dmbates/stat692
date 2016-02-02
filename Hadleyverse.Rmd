@@ -45,9 +45,9 @@ The equivalent expression using  [readr](http://github.com/hadley/readr) is
 (classroom <- read_csv("http://www-personal.umich.edu/~bwest/classroom.csv"))
 ```
 
-## Verbs and composition in readr
+## Verbs and composition in dplyr
 
-- The philosophy of `readr` is to use a number of "verbs" to express operations on the data and chain calls together using "pipes"
+- The philosophy of `dplyr` is to use a number of "verbs" to express operations on the data and chain calls together using "pipes"
 - The pipe operator is written `%>%`.  It takes the output of the operand on the left and uses it as the first argument to the operand on the right.  There is a keyboard shortcut (ctrl-shift-M) in RStudio
 - Various verbs applied to a single frame are:
     * `select` - select a subset of the columns
